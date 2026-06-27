@@ -1,18 +1,28 @@
 # scReportComposition
 
-<p align="center"> <strong>A lightweight table-driven composition reporting module for single-cell bioinformatics.</strong> </p>
+<p align="center">
+  <strong>A lightweight table-driven composition reporting module for single-cell bioinformatics.</strong>
+</p>
 
-<p align="center"> <img src="https://img.shields.io/badge/Status-Early%20Development-blue" alt="Status"> <img src="https://img.shields.io/badge/Focus-Cell%20Composition-green" alt="Focus"> <img src="https://img.shields.io/badge/Type-Interactive%20Report-lightgrey" alt="Type"> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"> </p>
+<p align="center"><img src="https://img.shields.io/badge/Version-v0.0.0--alpha-blue" alt="Version"> <img src="https://img.shields.io/badge/Status-Early%20Alpha-orange" alt="Status"> <img src="https://img.shields.io/badge/Layer-scReport%20Module-lightgrey" alt="Layer"> <img src="https://img.shields.io/badge/Focus-Cell%20Composition-purple" alt="Focus"> <a href="https://doi.org/10.5281/zenodo.20955461"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.20955461.svg" alt="DOI"></a> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></p>
 
 ## Overview
 
-`scReportComposition` is a lightweight reporting module in the **scReport** ecosystem.
+**scReportComposition** is a lightweight reporting module in the **scReport** ecosystem.
 
 It focuses on the visualization and organization of cell composition results in single-cell bioinformatics. The core idea is simple:
 
 > Convert cell-level metadata into a sample-level composition table, then generate an interactive report for composition exploration.
 
-Unlike cell-level visualization modules that render thousands or millions of single-cell points, `scReportComposition` is designed to be **table-driven**. Its main input is a summarized composition table, making it lightweight, fast, and suitable for static HTML reporting.
+Unlike cell-level visualization modules that render thousands or millions of single-cell points, **scReportComposition** is designed to be **table-driven**. Its main input is a summarized composition table, making it lightweight, fast, and suitable for static HTML reporting.
+
+## Current status
+
+The current release is an early alpha release.
+
+`v0.0.0-alpha` establishes the repository, project scope, README, DOI record, and development roadmap. It does not yet provide a functional R package implementation.
+
+The first functional release is planned as `v0.1.0`.
 
 ## Position in the scReport ecosystem
 
@@ -26,7 +36,7 @@ In this design:
 - `scReportComposition` focuses on sample-level and group-level cell composition.
 - Future modules may cover differential expression, enrichment analysis, trajectory analysis, cell communication, and other downstream analyses.
 
-`scReportComposition` is therefore intended to answer questions such as:
+`scReportComposition` is intended to answer questions such as:
 
 - What cell types are present in each sample?
 - What proportion of each sample is made up of a given cell type?
@@ -40,17 +50,17 @@ The central object of `scReportComposition` is the composition table.
 
 A typical composition table contains:
 
-|sample|group|cell_type|cell_count|total_cells|proportion|percent|
-|---|---|---|---|---|---|---|
-|Sample_1|Control|T cell|1200|5000|0.240|24.0|
-|Sample_1|Control|Macrophage|800|5000|0.160|16.0|
-|Sample_2|Disease|T cell|900|4800|0.188|18.8|
+| sample | group | cell_type | cell_count | total_cells | proportion | percent |
+|---|---|---|---:|---:|---:|---:|
+| Sample_1 | Control | T cell | 1200 | 5000 | 0.240 | 24.0 |
+| Sample_1 | Control | Macrophage | 800 | 5000 | 0.160 | 16.0 |
+| Sample_2 | Disease | T cell | 900 | 4800 | 0.188 | 18.8 |
 
 The `group` column is optional in early versions. When group information is unavailable, the report focuses on sample-level composition.
 
 ## Planned v0.1.0 scope
 
-The first version of `scReportComposition` focuses on **sample-level composition reporting**.
+The first functional version of `scReportComposition` will focus on **sample-level composition reporting**.
 
 Planned features for `v0.1.0`:
 
@@ -66,7 +76,7 @@ Planned features for `v0.1.0`:
 
 ## Out of scope for v0.1.0
 
-The following features are intentionally not included in the first version:
+The following features are intentionally not included in the first functional version:
 
 - Differential composition testing.
 - Group-level statistical comparison.
@@ -82,12 +92,11 @@ These features may be added in future versions.
 
 `scReportComposition` is designed to work with cell-level metadata such as:
 
-|   |   |   |   |
-|---|---|---|---|
-|cell_id|sample|cluster|cell_type|
-|Cell_001|Sample_1|0|T cell|
-|Cell_002|Sample_1|1|Macrophage|
-|Cell_003|Sample_2|0|T cell|
+| cell_id | sample | cluster | cell_type |
+|---|---|---:|---|
+| Cell_001 | Sample_1 | 0 | T cell |
+| Cell_002 | Sample_1 | 1 | Macrophage |
+| Cell_003 | Sample_2 | 0 | T cell |
 
 Minimum required columns:
 
@@ -107,7 +116,7 @@ Optional columns:
 
 The planned core workflow is:
 
-```
+```r
 library(scReportComposition)
 
 composition_result <- build_composition_table(
@@ -124,7 +133,7 @@ build_composition_report(
 
 Or directly:
 
-```
+```r
 build_composition_report(
   meta_df = meta_df,
   sample_col = "sample",
@@ -158,6 +167,10 @@ A typical `scReportComposition` report may include:
 - Compatibility with future cell-centric global tracking in scReport.
 
 ## Roadmap
+
+### v0.0.0-alpha
+
+Repository initialization, project definition, README, DOI, and roadmap.
 
 ### v0.1.0
 
@@ -205,12 +218,14 @@ A guiding principle is:
 
 ## Citation
 
-If you use `scReportComposition`, please cite the corresponding Zenodo record.
+If you use `scReportComposition`, please cite the corresponding Zenodo record:
 
-DOI:
+[![DOI](https://zenodo.org/badge/1280164558.svg)](https://doi.org/10.5281/zenodo.20955461)
 
-```
-To be added after release.
+Current DOI:
+
+```text
+10.5281/zenodo.20955461
 ```
 
 ## License
