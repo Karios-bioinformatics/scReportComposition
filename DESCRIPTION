@@ -1,0 +1,23 @@
+Package: scReportComposition
+Type: Package
+Title: Single-Cell Composition Interactive HTML Report Generator
+Version: 0.1.0
+Authors@R: person(given = "Kee-gong Karios",
+                  family = "Park",
+                  email = "karioslion0517@gmail.com",
+                  role = c("aut", "cre"))
+Description: Generate self-contained interactive HTML reports from single-cell
+    RNA-seq cell composition results. Accepts Seurat objects and produces a
+    composition table with stacked bar plots, cell-type fraction distributions,
+    and summary statistics. Designed as a lightweight companion to scReportLite
+    in the scReport ecosystem.
+License: MIT
+Encoding: UTF-8
+Imports:
+    plotly,
+    htmltools,
+    jsonlite
+Suggests:
+    Seurat,
+    SeuratObject
+RoxygenNote: 7.3.0

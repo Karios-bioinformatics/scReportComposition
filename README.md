@@ -1,228 +1,134 @@
 # scReportComposition
 
 <p align="center">
-  <strong>A lightweight table-driven composition reporting module for single-cell bioinformatics.</strong>
+  <strong>A lightweight, table-driven cell composition reporting module for single-cell bioinformatics.</strong>
 </p>
 
-<p align="center"><img src="https://img.shields.io/badge/Version-v0.0.0--alpha-blue" alt="Version"> <img src="https://img.shields.io/badge/Status-Early%20Alpha-orange" alt="Status"> <img src="https://img.shields.io/badge/Layer-scReport%20Module-lightgrey" alt="Layer"> <img src="https://img.shields.io/badge/Focus-Cell%20Composition-purple" alt="Focus"> <a href="https://doi.org/10.5281/zenodo.20955461"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.20955461.svg" alt="DOI"></a> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></p>
+<p align="center"><img src="https://img.shields.io/badge/Version-v0.1.0-blue" alt="Version"> <img src="https://img.shields.io/badge/Status-Functional%20Alpha-success" alt="Status"> <img src="https://img.shields.io/badge/Layer-scReport%20Module-lightgrey" alt="Layer"> <img src="https://img.shields.io/badge/Focus-Cell%20Composition-purple" alt="Focus"> <a href="https://doi.org/10.5281/zenodo.20955461"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.20955461.svg" alt="DOI"></a> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></p>
 
 ## Overview
 
 **scReportComposition** is a lightweight reporting module in the **scReport** ecosystem.
 
-It focuses on the visualization and organization of cell composition results in single-cell bioinformatics. The core idea is simple:
+It focuses on the visualisation and organisation of cell composition results in single-cell bioinformatics. The core idea is simple:
 
 > Convert cell-level metadata into a sample-level composition table, then generate an interactive report for composition exploration.
 
-Unlike cell-level visualization modules that render thousands or millions of single-cell points, **scReportComposition** is designed to be **table-driven**. Its main input is a summarized composition table, making it lightweight, fast, and suitable for static HTML reporting.
+**Key design principle:** scReportComposition does **not** perform statistical analysis. It takes pre-computed cell-type annotations and produces an interactive, shareable HTML report. Statistical methods (propeller, scCODA, GLMM, etc.) are planned for future versions.
 
-## Current status
+## v0.1.0 — Composition Visualisation
 
-The current release is an early alpha release.
+The first functional release focuses exclusively on **composition visualisation**.
 
-`v0.0.0-alpha` establishes the repository, project scope, README, DOI record, and development roadmap. It does not yet provide a functional R package implementation.
+### Features
 
-The first functional release is planned as `v0.1.0`.
+- **Composition Table** — standardised tidy data structure (sample × celltype × condition → n_cells, fraction)
+- **Summary Cards** — total cells, samples, cell types, conditions, cells per sample, cell types detected
+- **Sample Composition** — interactive stacked bar plot (Plotly: hover, legend, zoom, download)
+- **Condition Composition** — stacked bar by condition (auto-hidden when no condition column)
+- **Cell-Type Fraction** — boxplot + jitter distribution per cell type
+- **Self-contained HTML** — single file, no server, no Shiny, no database
 
-## Position in the scReport ecosystem
-
-`scReportComposition` is one module of the broader `scReport` ecosystem.
-
-The long-term goal of `scReport` is not only to connect different stage-specific reports, but also to support **cell-centric global tracking** across analysis modules.
-
-In this design:
-
-- `scReportLite` focuses on cell-level views such as QC, PCA, UMAP, feature plots, and marker tables.
-- `scReportComposition` focuses on sample-level and group-level cell composition.
-- Future modules may cover differential expression, enrichment analysis, trajectory analysis, cell communication, and other downstream analyses.
-
-`scReportComposition` is intended to answer questions such as:
-
-- What cell types are present in each sample?
-- What proportion of each sample is made up of a given cell type?
-- Which cell types dominate specific samples?
-- How does composition change across groups or conditions?
-- Which composition patterns should be linked back to cell-level views in the full scReport system?
-
-## Core concept
-
-The central object of `scReportComposition` is the composition table.
-
-A typical composition table contains:
-
-| sample | group | cell_type | cell_count | total_cells | proportion | percent |
-|---|---|---|---:|---:|---:|---:|
-| Sample_1 | Control | T cell | 1200 | 5000 | 0.240 | 24.0 |
-| Sample_1 | Control | Macrophage | 800 | 5000 | 0.160 | 16.0 |
-| Sample_2 | Disease | T cell | 900 | 4800 | 0.188 | 18.8 |
-
-The `group` column is optional in early versions. When group information is unavailable, the report focuses on sample-level composition.
-
-## Planned v0.1.0 scope
-
-The first functional version of `scReportComposition` will focus on **sample-level composition reporting**.
-
-Planned features for `v0.1.0`:
-
-- Build a composition table from cell-level metadata.
-- Summarize cell counts and proportions by sample and annotation.
-- Generate a single-page HTML composition report.
-- Provide stacked bar plots for sample-level composition.
-- Provide heatmap views of cell type proportions.
-- Provide bubble plots showing both cell count and proportion.
-- Provide total cell count summaries by sample.
-- Provide total cell count summaries by cell type.
-- Provide interactive composition tables.
-
-## Out of scope for v0.1.0
-
-The following features are intentionally not included in the first functional version:
-
-- Differential composition testing.
-- Group-level statistical comparison.
-- scCODA, propeller, Milo, or beta-binomial modeling.
-- UMAP rendering.
-- Large-scale single-cell point rendering.
-- Cross-module cell locking.
-- Full integration with the main `scReport` package.
-
-These features may be added in future versions.
-
-## Input data
-
-`scReportComposition` is designed to work with cell-level metadata such as:
-
-| cell_id | sample | cluster | cell_type |
-|---|---|---:|---|
-| Cell_001 | Sample_1 | 0 | T cell |
-| Cell_002 | Sample_1 | 1 | Macrophage |
-| Cell_003 | Sample_2 | 0 | T cell |
-
-Minimum required columns:
-
-- `sample`
-- `cell_type` or another annotation column
-
-Optional columns:
-
-- `cell_id`
-- `cluster`
-- `group`
-- `condition`
-- `annotation_level1`
-- `annotation_level2`
-
-## Planned usage
-
-The planned core workflow is:
+### Quick Start
 
 ```r
 library(scReportComposition)
+library(Seurat)
 
-composition_result <- build_composition_table(
-  meta_df,
-  sample_col = "sample",
-  annotation_col = "cell_type"
-)
+obj <- readRDS("my_seurat.rds")
 
-build_composition_report(
-  composition_result,
-  output = "scReportComposition.html"
+sccomp_report(
+  obj,
+  sample_col   = "orig.ident",
+  celltype_col = "cell_type",
+  condition_col = "condition"    # optional — omit if no conditions
 )
 ```
 
-Or directly:
+This produces `scReportComposition.html` — open it in any browser.
+
+### API
 
 ```r
-build_composition_report(
-  meta_df = meta_df,
-  sample_col = "sample",
-  annotation_col = "cell_type",
-  output = "scReportComposition.html"
+sccomp_report(
+  seurat_obj,
+  sample_col,       # column name for sample/origin
+  celltype_col,     # column name for cell type annotation
+  condition_col = NULL,  # optional condition column
+  output = "scReportComposition.html",
+  title  = "scReportComposition"
 )
 ```
 
-## Example report panels
+### Internal Functions
 
-A typical `scReportComposition` report may include:
+| Function | Purpose |
+|---|---|
+| `prepare_composition_data()` | Build standardised composition table from Seurat object |
+| `build_summary()` | Compute summary statistics for display cards |
+| `plot_sample_composition()` | Stacked bar — sample-level composition |
+| `plot_condition_composition()` | Stacked bar — condition-level (NULL if no condition) |
+| `plot_celltype_fraction()` | Boxplot + jitter — per-cell-type fraction distribution |
+| `build_html()` | Assemble self-contained HTML with CSS + JS |
+| `sccomp_report()` | Orchestrator — the only function most users need |
 
-1. Overview summary cards
-2. Sample-level stacked bar plot
-3. Cell type proportion heatmap
-4. Cell type composition bubble plot
-5. Total cells by sample
-6. Total cells by cell type
-7. Composition data table
-8. Optional annotation mapping table
+### Input
 
-## Design principles
+Seurat object with metadata columns for:
+- Sample identifier (e.g. `orig.ident`, `sample`, `patient`)
+- Cell-type annotation (e.g. `cell_type`, `cluster_annotation`)
+- Optional condition (e.g. `condition`, `group`, `treatment`)
 
-`scReportComposition` follows the general design principles of the scReport ecosystem:
+Columns are **not** hardcoded — the user specifies them.
 
-- Reporting after analysis, not replacing analysis.
-- Lightweight static HTML output.
-- Clear separation between analysis results and report generation.
-- Table-driven visualization.
-- Modular design.
-- Compatibility with future cell-centric global tracking in scReport.
+### Out of Scope for v0.1.0
 
-## Roadmap
+- Statistical testing (propeller, scCODA, GLMM, Beta regression, Dirichlet regression)
+- Differential composition analysis
+- P-values, significance markers
+- Machine learning or AI-based interpretation
+- Auto-generated conclusions or rich-text explanations
 
-### v0.0.0-alpha
+These are reserved for future versions.
 
-Repository initialization, project definition, README, DOI, and roadmap.
+### Output Report Layout
 
-### v0.1.0
+```
+┌──────────────────────────────────────────────┐
+│  scReportComposition  |  v0.1.0              │  ← Header
+├──────────────────────────────────────────────┤
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌───────┐ │
+│  │ Total  │ │Samples │ │Cell    │ │Cond.  │ │  ← Summary Cards
+│  │ Cells  │ │        │ │Types   │ │       │ │
+│  └────────┘ └────────┘ └────────┘ └───────┘ │
+├──────────────────────────────────────────────┤
+│  Sample Composition (Stacked Bar)            │  ← Plotly interactive
+├──────────────────────────────────────────────┤
+│  Condition Composition (Stacked Bar)         │  ← Hidden if no condition
+├──────────────────────────────────────────────┤
+│  Cell-Type Fraction (Boxplot + Jitter)       │  ← Plotly interactive
+└──────────────────────────────────────────────┘
+```
 
-Sample-level cell composition report.
+## Position in the scReport Ecosystem
 
-### v0.2.0
+- **scReportLite** — cell-level QC, PCA, UMAP, feature plots, marker tables
+- **scReportComposition** — sample-level / group-level cell composition (this package)
+- Future modules: differential expression, enrichment, trajectory, cell communication
 
-Group-level composition comparison.
+## Design Principles
 
-Potential additions:
-
-- Group mean composition stacked bar plot.
-- Cell type proportion boxplot by group.
-- Delta composition plot.
-
-### v0.3.0
-
-Differential composition result display.
-
-Potential additions:
-
-- External statistical result table support.
-- Volcano-like differential composition plot.
-- Significant cell type summary.
-
-### Future
-
-Integration with the main `scReport` ecosystem.
-
-Potential directions:
-
-- Cell-centric global tracking.
-- Linking selected cells to composition bins.
-- Connecting composition results with UMAP, PCA, DE, enrichment, and trajectory modules.
-
-## Relationship to scReport
-
-`scReportComposition` is developed as part of the broader `scReport` ecosystem.
-
-The broader vision of `scReport` is to build an interactive reporting system for single-cell bioinformatics results, where a cell can keep its identity across different analysis stages.
-
-A guiding principle is:
-
-> A cell should not lose its identity when the user moves across analysis modules.
+- Report after analysis — does not re-compute
+- Lightweight static HTML output
+- Table-driven visualisation
+- Modular, consistent with scReportLite
+- One output: one self-contained HTML file
 
 ## Citation
 
-If you use `scReportComposition`, please cite the corresponding Zenodo record:
+If you use scReportComposition, please cite the corresponding Zenodo record:
 
 [![DOI](https://zenodo.org/badge/1280164558.svg)](https://doi.org/10.5281/zenodo.20955461)
-
-Current DOI:
 
 ```text
 10.5281/zenodo.20955461
@@ -230,4 +136,4 @@ Current DOI:
 
 ## License
 
-This project is released under the MIT License.
+MIT
