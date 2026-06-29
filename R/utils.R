@@ -73,3 +73,30 @@ fmt_num <- function(x, digits = 0) {
 fmt_pct <- function(x) {
   sprintf("%.1f%%", x * 100)
 }
+
+
+#' Generate a condition colour map
+#'
+#' Uses a fixed 12-colour qualitative palette distinct from the
+#' cell-type palette so condition-level and cell-type-level colour
+#' schemes never clash.
+#'
+#' @param conditions Character vector of unique condition identifiers
+#' @return Named character vector of hex colours
+#' @keywords internal
+condition_color_map <- function(conditions) {
+  palette <- c(
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b",
+    "#e377c2", "#7f7f7f", "#bcbd22", "#17becf", "#aec7e8", "#ffbb78"
+  )
+  n <- length(conditions)
+  if (n > length(palette)) {
+    warning(
+      "Number of conditions (", n, ") exceeds palette size (",
+      length(palette), "). Colours will be recycled.", call. = FALSE
+    )
+  }
+  colors <- rep(palette, length.out = n)
+  names(colors) <- as.character(conditions)
+  colors
+}

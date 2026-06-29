@@ -43,14 +43,37 @@ build_summary <- function(comp_data, condition_col = NULL) {
     NA_integer_
   }
 
+  # cells_per_condition
+  cells_per_condition <- NULL
+  samples_per_condition <- NULL
+  if (has_condition) {
+    cpc <- stats::aggregate(
+      n_cells ~ condition, data = comp_data, FUN = sum
+    )
+    cells_per_condition <- setNames(
+      cpc$n_cells, as.character(cpc$condition)
+    )
+    spc <- stats::aggregate(
+      sample ~ condition,
+      data = unique(comp_data[comp_data$total_cells > 0,
+                              c("sample", "condition")]),
+      FUN = length
+    )
+    samples_per_condition <- setNames(
+      spc$sample, as.character(spc$condition)
+    )
+  }
+
   list(
-    total_cells       = total_cells,
-    n_samples         = length(samples),
-    n_celltypes       = length(celltypes),
-    n_conditions      = n_conditions,
-    cells_per_sample  = cells_per_sample,
-    celltypes_detected = as.character(celltypes),
-    has_condition     = has_condition,
-    samples           = as.character(samples)
+    total_cells         = total_cells,
+    n_samples           = length(samples),
+    n_celltypes         = length(celltypes),
+    n_conditions        = n_conditions,
+    cells_per_sample    = cells_per_sample,
+    cells_per_condition = cells_per_condition,
+    samples_per_condition = samples_per_condition,
+    celltypes_detected  = as.character(celltypes),
+    has_condition       = has_condition,
+    samples             = as.character(samples)
   )
 }

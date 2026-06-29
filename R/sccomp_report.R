@@ -1,24 +1,30 @@
 # scReportComposition: Main API -------------------------------------------------
 #
 # sccomp_report() is the single entry point.
-# It orchestrates: prepare → summarise → plot → assemble → write.
+# Orchestrates: prepare → summarise → plot (10 modules) → assemble → write.
 # Accepts either a Seurat object or a plain data.frame of metadata.
 
 
-#' Generate a Cell Composition HTML Report
+#' Generate a Full Cell Composition HTML Report
 #'
 #' Takes a Seurat object (or a \code{data.frame} of cell-level metadata)
 #' and user-specified column names, builds a composition table, creates
 #' interactive Plotly visualisations, and writes a self-contained HTML
-#' report file.
+#' report with left-side navigation covering all 10 modules.
 #'
-#' The report includes:
+#' Report modules:
 #' \itemize{
-#'   \item Summary Cards: total cells, samples, cell types, conditions
-#'   \item Sample Composition: stacked bar plot (every sample)
-#'   \item Condition Composition: stacked bar plot (if \code{condition_col}
-#'         is provided; hidden otherwise)
-#'   \item Cell-Type Fraction: boxplot + jitter per cell type
+#'   \item Overview — summary cards (total cells, samples, cell types,
+#'         conditions, cells/samples per condition)
+#'   \item Sample Composition — cell counts + fractions per sample
+#'         (stacked bars)
+#'   \item Condition Composition — cell counts + fractions per condition
+#'         (stacked bars; hidden when no condition column)
+#'   \item Cell Type Distribution — fraction + count boxplots by condition
+#'         (hidden when no condition column)
+#'   \item Heatmaps — sample × cell type + condition × cell type fraction
+#'         heatmaps
+#'   \item Table — scrollable composition table
 #' }
 #'
 #' @param seurat_obj A Seurat object.  Ignored when \code{meta_data} is provided.
@@ -29,10 +35,10 @@
 #' @param celltype_col Name of the cell-type column
 #'   (e.g. \code{"cell_type"})
 #' @param condition_col Optional name of the condition column
-#'   (e.g. \code{"condition"}).  When \code{NULL}, the Condition
-#'   Composition section is omitted.
+#'   (e.g. \code{"condition"}).  When \code{NULL}, condition-dependent
+#'   sections are omitted.
 #' @param output Path to the output HTML file.
-#'   Default: \code{"scReportComposition.html"} in the current directory.
+#'   Default: \code{"scReportComposition.html"}.
 #' @param title Report title shown in the header.
 #'   Default: \code{"scReportComposition"}.
 #'
@@ -82,25 +88,67 @@ sccomp_report <- function(seurat_obj   = NULL,
   # ---- 2. Summary ----
   summary <- build_summary(comp_data, condition_col = condition_col)
 
-  # ---- 3. Colour map ----
-  all_ct      <- as.character(levels(comp_data$celltype))
-  ct_colors   <- celltype_color_map(all_ct)
+  # ---- 3. Colour maps ----
+  all_ct   <- as.character(levels(comp_data$celltype))
+  ct_cols  <- celltype_color_map(all_ct)
 
-  # ---- 4. Plots ----
+  has_cond <- !is.na(summary$n_conditions)
+  cond_cols <- NULL
+  if (has_cond) {
+    conds     <- levels(comp_data$condition)
+    cond_cols <- condition_color_map(as.character(conds))
+  }
+
+  # ---- 4. Generate all plots ----
   message("Generating plots...")
-  p_sample    <- plot_sample_composition(comp_data, ct_colors)
-  p_condition <- plot_condition_composition(comp_data, ct_colors)
-  p_celltype  <- plot_celltype_fraction(comp_data, ct_colors)
+
+  plots <- list()
+
+  # Sample composition (counts + fractions)
+  message("  - Sample count & fraction bars...")
+  plots$p_sample_count <- plot_sample_count_composition(comp_data, ct_cols)
+  plots$p_sample_frac  <- plot_sample_composition(comp_data, ct_cols)
+
+  # Condition composition
+  if (has_cond) {
+    message("  - Condition count & fraction bars...")
+    plots$p_cond_count <- plot_condition_count_composition(comp_data, ct_cols)
+    plots$p_cond_frac  <- plot_condition_composition(comp_data, ct_cols)
+
+    # Cell type distribution by condition
+    message("  - Cell-type distribution by condition...")
+    plots$p_ct_frac_by_cond  <- plot_celltype_fraction_by_condition(
+      comp_data, cond_cols
+    )
+    plots$p_ct_count_by_cond <- plot_celltype_count_by_condition(
+      comp_data, cond_cols
+    )
+  } else {
+    plots$p_cond_count      <- NULL
+    plots$p_cond_frac       <- NULL
+    plots$p_ct_frac_by_cond <- NULL
+    plots$p_ct_count_by_cond <- NULL
+  }
+
+  # Heatmaps
+  message("  - Heatmaps...")
+  plots$p_heatmap_sample <- plot_sample_celltype_heatmap(comp_data)
+  plots$p_heatmap_cond   <- if (has_cond) {
+    plot_condition_celltype_heatmap(comp_data)
+  } else NULL
+
+  # Composition table
+  message("  - Composition table...")
+  comp_table <- render_composition_table(comp_data, condition_col)
 
   # ---- 5. Assemble & write HTML ----
   message("Assembling HTML report...")
   build_html(
-    summary        = summary,
-    plot_sample    = p_sample,
-    plot_condition = p_condition,
-    plot_celltype  = p_celltype,
-    output         = output,
-    title          = title
+    summary    = summary,
+    plots      = plots,
+    comp_table = comp_table,
+    output     = output,
+    title      = title
   )
 
   invisible(output)

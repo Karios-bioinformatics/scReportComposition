@@ -1,14 +1,14 @@
-# scReportComposition: build_html — CSS + HTML Assembly -------------------------
+# scReportComposition: build_html — CSS + HTML + JS Assembly -------------------
 #
-# Generates the self-contained HTML report.
-# Design follows scReportLite conventions: same accent colours, card-based
-# layout, Plotly interactive charts, single-file output.
+# Generates a self-contained HTML report with left-side navigation and
+# section-switching content panels.
+# Design follows scReportLite visual conventions.
 
 
 # ---- CSS ----------------------------------------------------------------------
 
 report_css <- function() {
-'/* === scReportComposition v0.1.0 Styles === */
+'/* === scReportComposition v0.1.0 === */
 
 :root {
   --sr-accent: #00b894;
@@ -20,7 +20,6 @@ report_css <- function() {
   --sr-muted: #95a5a6;
   --sr-radius-sm: 6px;
   --sr-radius-md: 8px;
-  --sr-radius-lg: 10px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,150 +27,212 @@ report_css <- function() {
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                "Helvetica Neue", Arial, sans-serif;
-  background: #f5f6fa;
-  color: #2d3436;
-  line-height: 1.5;
+  background: #f5f6fa; color: #2d3436; line-height: 1.5;
+  height: 100vh; overflow: hidden;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px 48px;
-}
-
-/* --- Header --- */
+/* ---- Header ---- */
 .report-header {
-  background: #fff;
-  border-bottom: 1px solid var(--sr-border);
-  padding: 20px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 -24px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fff; border-bottom: 1px solid var(--sr-border);
+  padding: 14px 24px; flex-shrink: 0;
 }
 .report-title {
-  font-size: 1.35em;
-  font-weight: 600;
-  color: var(--sr-text);
+  font-size: 1.25em; font-weight: 600; color: var(--sr-text);
 }
 .report-meta {
-  font-size: 0.85em;
-  color: var(--sr-muted);
+  font-size: 0.8em; color: var(--sr-muted);
 }
 
-/* --- Summary Cards --- */
-.summary-section {
+/* ---- Main layout ---- */
+.main-layout {
+  display: grid; grid-template-columns: 200px minmax(0, 1fr);
+  flex: 1; min-height: 0; overflow: hidden;
+}
+
+/* ---- Left Nav ---- */
+.comp-nav {
+  background: #fff; border-right: 1px solid var(--sr-border);
+  overflow-y: auto; padding: 12px 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.comp-nav-label {
+  font-size: 0.7em; font-weight: 700; color: #b2bec3;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  padding: 4px 8px; margin-top: 10px;
+}
+.comp-nav-label:first-child { margin-top: 0; }
+.comp-nav-item {
+  display: flex; align-items: center; padding: 5px 8px;
+  cursor: pointer; border-radius: var(--sr-radius-sm);
+  font-size: 0.8em; color: #636e72;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  user-select: none; border-left: 3px solid transparent; gap: 6px;
+}
+.comp-nav-item:hover { background: var(--sr-accent-soft); }
+.comp-nav-item.active {
+  background: var(--sr-accent-soft);
+  border-left-color: var(--sr-accent); font-weight: 600; color: #2d3436;
+}
+.comp-nav-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--sr-accent); opacity: 0; transition: opacity 0.15s;
+}
+.comp-nav-item.active .comp-nav-dot { opacity: 1; }
+
+/* ---- Content area ---- */
+.comp-content {
+  flex: 1; min-width: 0; min-height: 0;
+  overflow-y: auto; padding: 20px 24px 40px;
+}
+
+/* ---- Section ---- */
+.comp-section {
+  display: none;
+}
+.comp-section.comp-visible { display: block; }
+
+.comp-section-title {
+  font-size: 1.05em; font-weight: 600; color: var(--sr-text);
+  margin-bottom: 16px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--sr-border);
+}
+
+/* ---- Summary Cards ---- */
+.summary-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px; margin-bottom: 20px;
 }
-
 .summary-card {
-  background: #fff;
-  border-radius: var(--sr-radius-md);
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  background: #fff; border-radius: var(--sr-radius-md);
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   border-top: 3px solid var(--sr-accent);
 }
-
 .summary-card-value {
-  font-size: 1.8em;
-  font-weight: 700;
-  color: var(--sr-text);
-  line-height: 1.1;
+  font-size: 1.7em; font-weight: 700; color: var(--sr-text); line-height: 1.1;
 }
-
 .summary-card-label {
-  font-size: 0.78em;
-  font-weight: 600;
-  color: var(--sr-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.72em; font-weight: 600; color: var(--sr-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;
 }
-
 .summary-card-detail {
-  font-size: 0.82em;
-  color: #636e72;
-  line-height: 1.4;
+  font-size: 0.78em; color: #636e72; margin-top: 6px; line-height: 1.5;
+  word-break: break-all;
 }
 
-/* --- Plot Sections --- */
-.plot-section {
-  background: #fff;
-  border-radius: var(--sr-radius-md);
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+/* ---- Plots ---- */
+.comp-plot-block {
+  background: #fff; border-radius: var(--sr-radius-md);
+  padding: 16px; margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-
-.plot-section .section-title {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: #636e72;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.comp-plot-block .comp-plot-title {
+  font-size: 0.78em; font-weight: 600; color: #636e72;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
 }
-
-.plot-container {
-  min-height: 400px;
-  width: 100%;
-}
-
-.plot-container > *,
-.plot-container .html-widget,
-.plot-container .plotly,
-.plot-container .js-plotly-plot {
+.comp-plot-body { min-height: 350px; }
+.comp-plot-body > *,
+.comp-plot-body .html-widget,
+.comp-plot-body .plotly,
+.comp-plot-body .js-plotly-plot {
   width: 100% !important;
 }
 
-/* --- Footer --- */
+/* ---- Composition Table ---- */
+.comp-table-wrapper {
+  max-height: 520px; overflow: auto;
+  border: 1px solid var(--sr-border); border-radius: var(--sr-radius-md);
+  background: #fff;
+}
+.comp-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82em;
+}
+.comp-table thead {
+  position: sticky; top: 0; z-index: 1;
+  background: #f8f9fc;
+}
+.comp-table th {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 2px solid var(--sr-border);
+  font-weight: 600; color: #636e72; font-size: 0.88em;
+  white-space: nowrap;
+}
+.comp-table td {
+  padding: 6px 12px; border-bottom: 1px solid #f0f1f5;
+}
+.comp-table tbody tr:hover { background: #f8f9fc; }
+.comp-table-footer {
+  padding: 6px 12px; font-size: 0.75em; color: var(--sr-muted);
+  text-align: right; border-top: 1px solid var(--sr-border);
+}
+
+/* ---- Footer ---- */
 .report-footer {
+  text-align: center; padding: 20px 0 32px;
+  font-size: 0.75em; color: var(--sr-muted);
+}
+
+/* ---- No-data placeholder ---- */
+.no-data {
+  color: var(--sr-muted); font-style: italic; padding: 20px 0;
   text-align: center;
-  padding: 16px 0 32px;
-  font-size: 0.78em;
-  color: var(--sr-muted);
 }
 
-/* --- Plotly modebar --- */
-.modebar-btn {
-  border-radius: var(--sr-radius-sm) !important;
-}
-.modebar-btn:hover {
-  background: var(--sr-accent-soft) !important;
-}
-
-/* --- Responsive --- */
-@media (max-width: 768px) {
-  .summary-section {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .container {
-    padding: 0 12px 24px;
-  }
+/* ---- Responsive ---- */
+@media (max-width: 800px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .comp-nav { display: none; }
 }
 '
 }
 
 
-# ---- JavaScript ----------------------------------------------------------------
+# ---- JavaScript ---------------------------------------------------------------
 
 report_js <- function() {
 '
 // === scReportComposition v0.1.0 ===
-// Minimal JS: report is primarily static Plotly widgets.
-// Plotly modebar handles zoom / pan / download / hover natively.
+// Section navigation + Plotly resize
+
+function switchSection(name) {
+  // Deactivate all nav items
+  var items = document.querySelectorAll(".comp-nav-item");
+  items.forEach(function(el) { el.classList.remove("active"); });
+
+  // Activate clicked item
+  var target = document.getElementById("nav-" + name);
+  if (target) target.classList.add("active");
+
+  // Show active section, hide others
+  var sections = document.querySelectorAll(".comp-section");
+  sections.forEach(function(s) { s.classList.remove("comp-visible"); });
+
+  var targetSection = document.getElementById("section-" + name);
+  if (targetSection) {
+    targetSection.classList.add("comp-visible");
+  }
+
+  // Resize Plotly charts in the newly visible section
+  setTimeout(function() {
+    var plots = targetSection
+      ? targetSection.querySelectorAll(".js-plotly-plot")
+      : [];
+    plots.forEach(function(p) {
+      try { Plotly.Plots.resize(p); } catch(e) {}
+    });
+  }, 50);
+}
 
 window.addEventListener("resize", function() {
   if (!window.Plotly) return;
-  var plots = document.querySelectorAll(".js-plotly-plot");
-  for (var i = 0; i < plots.length; i++) {
-    try { Plotly.Plots.resize(plots[i]); } catch(e) {}
-  }
+  var visible = document.querySelector(".comp-section.comp-visible");
+  if (!visible) return;
+  var plots = visible.querySelectorAll(".js-plotly-plot");
+  plots.forEach(function(p) {
+    try { Plotly.Plots.resize(p); } catch(e) {}
+  });
 });
 '
 }
@@ -180,122 +241,211 @@ window.addEventListener("resize", function() {
 # ---- Summary Cards HTML -------------------------------------------------------
 
 build_summary_cards <- function(summary) {
-  cards <- list()
-
-  # Card 1: Total Cells
-  cards[[1]] <- htmltools::tags$div(
-    class = "summary-card",
-    htmltools::tags$div(class = "summary-card-value",
-                        fmt_num(summary$total_cells)),
-    htmltools::tags$div(class = "summary-card-label", "Total Cells")
+  cards <- list(
+    card("Total Cells",     fmt_num(summary$total_cells)),
+    card("Samples",         as.character(summary$n_samples)),
+    card("Cell Types",      as.character(summary$n_celltypes))
   )
 
-  # Card 2: Samples
-  cards[[2]] <- htmltools::tags$div(
-    class = "summary-card",
-    htmltools::tags$div(class = "summary-card-value",
-                        as.character(summary$n_samples)),
-    htmltools::tags$div(class = "summary-card-label", "Samples")
-  )
-
-  # Card 3: Cell Types
-  cards[[3]] <- htmltools::tags$div(
-    class = "summary-card",
-    htmltools::tags$div(class = "summary-card-value",
-                        as.character(summary$n_celltypes)),
-    htmltools::tags$div(class = "summary-card-label", "Cell Types")
-  )
-
-  # Card 4: Conditions (if present)
   if (!is.na(summary$n_conditions)) {
-    cards[[4]] <- htmltools::tags$div(
-      class = "summary-card",
-      htmltools::tags$div(class = "summary-card-value",
-                          as.character(summary$n_conditions)),
-      htmltools::tags$div(class = "summary-card-label", "Conditions")
-    )
+    cards <- c(cards, list(
+      card("Conditions", as.character(summary$n_conditions))
+    ))
   }
 
-  # Card 5: Cells per sample (inline detail)
-  cps_text <- paste(
+  # Cells per sample
+  cps <- paste(
     names(summary$cells_per_sample),
     fmt_num(summary$cells_per_sample),
     sep = ": ", collapse = "  |  "
   )
-  cards[[length(cards) + 1]] <- htmltools::tags$div(
-    class = "summary-card",
-    htmltools::tags$div(class = "summary-card-value",
-                        fmt_num(mean(summary$cells_per_sample))),
-    htmltools::tags$div(class = "summary-card-label", "Avg Cells / Sample"),
-    htmltools::tags$div(class = "summary-card-detail", cps_text)
-  )
+  cards <- c(cards, list(card(
+    "Avg Cells / Sample",
+    fmt_num(mean(summary$cells_per_sample)),
+    cps
+  )))
 
-  # Card 6: Cell types detected (inline)
-  ct_text <- paste(summary$celltypes_detected, collapse = ", ")
-  cards[[length(cards) + 1]] <- htmltools::tags$div(
-    class = "summary-card",
-    htmltools::tags$div(class = "summary-card-value",
-                        as.character(summary$n_celltypes)),
-    htmltools::tags$div(class = "summary-card-label", "Cell Types Detected"),
-    htmltools::tags$div(class = "summary-card-detail", ct_text)
-  )
+  # Cells per condition
+  if (!is.null(summary$cells_per_condition)) {
+    cpc <- paste(
+      names(summary$cells_per_condition),
+      fmt_num(summary$cells_per_condition),
+      sep = ": ", collapse = "  |  "
+    )
+    cards <- c(cards, list(card(
+      "Cells / Condition",
+      "",
+      cpc
+    )))
+  }
+
+  # Samples per condition
+  if (!is.null(summary$samples_per_condition)) {
+    spc <- paste(
+      names(summary$samples_per_condition),
+      summary$samples_per_condition,
+      sep = ": ", collapse = "  |  "
+    )
+    cards <- c(cards, list(card(
+      "Samples / Condition",
+      "",
+      spc
+    )))
+  }
 
   cards
+}
+
+card <- function(label, value, detail = NULL) {
+  children <- list(
+    htmltools::tags$div(class = "summary-card-value", value),
+    htmltools::tags$div(class = "summary-card-label", label)
+  )
+  if (!is.null(detail) && nzchar(detail)) {
+    children <- c(children, list(
+      htmltools::tags$div(class = "summary-card-detail", detail)
+    ))
+  }
+  htmltools::tags$div(class = "summary-card", children)
+}
+
+
+# ---- Section builders ----------------------------------------------------------
+
+# Build a navigation item
+nav_item <- function(id, label) {
+  htmltools::tags$div(
+    class = "comp-nav-item",
+    id    = paste0("nav-", id),
+    onclick = paste0("switchSection('", id, "')"),
+    htmltools::tags$span(class = "comp-nav-dot"),
+    label
+  )
+}
+
+# Build a content section
+comp_section <- function(id, title, ..., visible = FALSE) {
+  htmltools::tags$div(
+    class = paste("comp-section", if (visible) "comp-visible" else ""),
+    id    = paste0("section-", id),
+    htmltools::tags$div(class = "comp-section-title", title),
+    ...
+  )
+}
+
+# Build a plot block
+plot_block <- function(title, widget) {
+  htmltools::tags$div(
+    class = "comp-plot-block",
+    htmltools::tags$div(class = "comp-plot-title", title),
+    htmltools::tags$div(
+      class = "comp-plot-body",
+      htmltools::as.tags(widget)
+    )
+  )
 }
 
 
 # ---- HTML Assembly -------------------------------------------------------------
 
-#' Assemble and Write the Complete Composition HTML Report
-#'
-#' Combines the Summary Cards, composition plots, CSS, and JS into a
-#' single self-contained HTML file.
+#' Assemble and Write the Full Composition HTML Report
 #'
 #' @param summary A list from \code{build_summary()}
-#' @param plot_sample A plotly widget from \code{plot_sample_composition()}
-#' @param plot_condition A plotly widget or NULL
-#' @param plot_celltype A plotly widget from \code{plot_celltype_fraction()}
+#' @param plots A named list of plotly widgets (see Details)
+#' @param comp_table An \code{htmltools} tag from \code{render_composition_table()}
 #' @param output Path to output HTML file
 #' @param title Report title string
 #' @return Invisibly, the path to the output file
 #' @keywords internal
-build_html <- function(summary, plot_sample, plot_condition, plot_celltype,
+#'
+#' @details
+#' The \code{plots} list may contain:
+#' \describe{
+#'   \item{p_sample_count}{Sample count stacked bar}
+#'   \item{p_sample_frac}{Sample fraction stacked bar}
+#'   \item{p_cond_count}{Condition count stacked bar (NULL if no condition)}
+#'   \item{p_cond_frac}{Condition fraction stacked bar (NULL if no condition)}
+#'   \item{p_ct_frac_by_cond}{Cell-type fraction by condition boxplot}
+#'   \item{p_ct_count_by_cond}{Cell-type count by condition boxplot}
+#'   \item{p_heatmap_sample}{Sample heatmap}
+#'   \item{p_heatmap_cond}{Condition heatmap (NULL if no condition)}
+#' }
+build_html <- function(summary, plots, comp_table,
                         output, title = "scReportComposition") {
 
-  # ---- Section: Sample Composition ----
-  sample_section <- htmltools::tags$div(
-    class = "plot-section",
-    htmltools::tags$div(class = "section-title", "Sample Composition"),
-    htmltools::tags$div(class = "plot-container",
-                        htmltools::as.tags(plot_sample))
+  has_cond <- !is.na(summary$n_conditions)
+
+  # ---- Sections ----
+  sections <- list()
+
+  # 1. Overview
+  sections$overview <- comp_section("overview", "Overview", visible = TRUE,
+    htmltools::tags$div(class = "summary-cards",
+                        build_summary_cards(summary))
   )
 
-  # ---- Section: Condition Composition (only if plot exists) ----
-  condition_section <- NULL
-  if (!is.null(plot_condition)) {
-    condition_section <- htmltools::tags$div(
-      class = "plot-section",
-      id    = "section-condition-composition",
-      htmltools::tags$div(class = "section-title", "Condition Composition"),
-      htmltools::tags$div(class = "plot-container",
-                          htmltools::as.tags(plot_condition))
+  # 2. Sample Composition (counts + fractions)
+  sections$sample <- comp_section("sample", "Sample Composition",
+    plot_block("Cell Counts per Sample", plots$p_sample_count),
+    plot_block("Cell Fractions per Sample", plots$p_sample_frac)
+  )
+
+  # 3. Condition Composition (if applicable)
+  if (has_cond) {
+    sections$condition <- comp_section("condition", "Condition Composition",
+      if (!is.null(plots$p_cond_count))
+        plot_block("Cell Counts per Condition", plots$p_cond_count),
+      if (!is.null(plots$p_cond_frac))
+        plot_block("Cell Fractions per Condition", plots$p_cond_frac)
     )
   }
 
-  # ---- Section: Cell-Type Fraction ----
-  celltype_section <- htmltools::tags$div(
-    class = "plot-section",
-    htmltools::tags$div(class = "section-title", "Cell-Type Fraction"),
-    htmltools::tags$div(class = "plot-container",
-                        htmltools::as.tags(plot_celltype))
+  # 4. Cell Type Distribution (if condition present)
+  if (has_cond) {
+    sections$ctdist <- comp_section("ctdist", "Cell Type Distribution",
+      if (!is.null(plots$p_ct_frac_by_cond))
+        plot_block("Fraction by Condition", plots$p_ct_frac_by_cond),
+      if (!is.null(plots$p_ct_count_by_cond))
+        plot_block("Count by Condition", plots$p_ct_count_by_cond)
+    )
+  }
+
+  # 5. Heatmaps
+  sections$heatmaps <- comp_section("heatmaps", "Heatmaps",
+    if (!is.null(plots$p_heatmap_sample))
+      plot_block("Sample × Cell Type", plots$p_heatmap_sample),
+    if (!is.null(plots$p_heatmap_cond))
+      plot_block("Condition × Cell Type", plots$p_heatmap_cond)
   )
 
-  # ---- Build full page ----
+  # 6. Table
+  sections$table <- comp_section("table", "Composition Table", comp_table)
+
+  # ---- Navigation ----
+  nav_items <- list(
+    htmltools::tags$div(class = "comp-nav-label", "Report"),
+    nav_item("overview", "Overview"),
+    nav_item("sample", "Sample Comp.")
+  )
+
+  if (has_cond) {
+    nav_items <- c(nav_items, list(
+      nav_item("condition", "Condition Comp."),
+      nav_item("ctdist", "CT Distribution")
+    ))
+  }
+
+  nav_items <- c(nav_items, list(
+    nav_item("heatmaps", "Heatmaps"),
+    nav_item("table", "Table")
+  ))
+
+  # ---- Build page ----
   page <- htmltools::tagList(
     htmltools::tags$head(
       htmltools::tags$meta(charset = "UTF-8"),
       htmltools::tags$meta(
-        name    = "viewport",
+        name = "viewport",
         content = "width=device-width, initial-scale=1.0"
       ),
       htmltools::tags$title(title),
@@ -303,45 +453,37 @@ build_html <- function(summary, plot_sample, plot_condition, plot_celltype,
     ),
 
     htmltools::tags$body(
-      htmltools::tags$div(class = "container",
+      # Header
+      htmltools::tags$header(class = "report-header",
+        htmltools::tags$div(class = "report-title", title),
+        htmltools::tags$div(class = "report-meta",
+          "Cell Composition Report — scReportComposition v0.1.0")
+      ),
 
-        # Header
-        htmltools::tags$header(class = "report-header",
-          htmltools::tags$div(class = "report-title", title),
-          htmltools::tags$div(class = "report-meta",
-            "Cell Composition Report — scReportComposition v0.1.0")
-        ),
+      # Main layout
+      htmltools::tags$div(class = "main-layout",
 
-        # Summary Cards
-        htmltools::tags$div(
-          class = "summary-section",
-          build_summary_cards(summary)
-        ),
+        # Left nav
+        htmltools::tags$nav(class = "comp-nav", nav_items),
 
-        # Sample Composition
-        sample_section,
+        # Content
+        htmltools::tags$main(class = "comp-content", sections)
+      ),
 
-        # Condition Composition (nullable)
-        condition_section,
-
-        # Cell-Type Fraction
-        celltype_section,
-
-        # Footer
-        htmltools::tags$footer(class = "report-footer",
-          "Generated by scReportComposition v0.1.0  |  ",
-          "scReport Ecosystem"
-        )
+      # Footer
+      htmltools::tags$footer(class = "report-footer",
+        "Generated by scReportComposition v0.1.0  |  scReport Ecosystem"
       ),
 
       # JS
       htmltools::tags$script(htmltools::HTML(report_js()))
+
     )
   )
 
-  # ---- Write ----
   htmltools::save_html(page, file = output)
 
-  message("Composition report written to: ", normalizePath(output, mustWork = FALSE))
+  message("Composition report written to: ",
+          normalizePath(output, mustWork = FALSE))
   invisible(output)
 }
