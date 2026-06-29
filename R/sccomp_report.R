@@ -2,13 +2,15 @@
 #
 # sccomp_report() is the single entry point.
 # It orchestrates: prepare → summarise → plot → assemble → write.
+# Accepts either a Seurat object or a plain data.frame of metadata.
 
 
 #' Generate a Cell Composition HTML Report
 #'
-#' Takes a Seurat object and user-specified column names, builds a
-#' composition table, creates interactive Plotly visualisations, and
-#' writes a self-contained HTML report file.
+#' Takes a Seurat object (or a \code{data.frame} of cell-level metadata)
+#' and user-specified column names, builds a composition table, creates
+#' interactive Plotly visualisations, and writes a self-contained HTML
+#' report file.
 #'
 #' The report includes:
 #' \itemize{
@@ -19,10 +21,12 @@
 #'   \item Cell-Type Fraction: boxplot + jitter per cell type
 #' }
 #'
-#' @param seurat_obj A Seurat object
-#' @param sample_col   Name of the sample column in
-#'   \code{seurat_obj@meta.data} (e.g. \code{"orig.ident"})
-#' @param celltype_col Name of the cell-type column in metadata
+#' @param seurat_obj A Seurat object.  Ignored when \code{meta_data} is provided.
+#' @param meta_data A \code{data.frame} of cell-level metadata.  When provided,
+#'   it takes precedence over \code{seurat_obj}.
+#' @param sample_col   Name of the sample column
+#'   (e.g. \code{"orig.ident"})
+#' @param celltype_col Name of the cell-type column
 #'   (e.g. \code{"cell_type"})
 #' @param condition_col Optional name of the condition column
 #'   (e.g. \code{"condition"}).  When \code{NULL}, the Condition
@@ -40,6 +44,7 @@
 #' library(scReportComposition)
 #' library(Seurat)
 #'
+#' # From a Seurat object
 #' obj <- readRDS("my_seurat.rds")
 #' sccomp_report(
 #'   obj,
@@ -47,8 +52,18 @@
 #'   celltype_col = "cell_type",
 #'   condition_col = "condition"
 #' )
+#'
+#' # From a plain data.frame (no Seurat required)
+#' meta <- read.csv("cell_metadata.csv")
+#' sccomp_report(
+#'   meta_data    = meta,
+#'   sample_col   = "sample",
+#'   celltype_col = "cell_type",
+#'   condition_col = "condition"
+#' )
 #' }
-sccomp_report <- function(seurat_obj,
+sccomp_report <- function(seurat_obj   = NULL,
+                           meta_data    = NULL,
                            sample_col,
                            celltype_col,
                            condition_col = NULL,
@@ -57,9 +72,10 @@ sccomp_report <- function(seurat_obj,
 
   # ---- 1. Prepare composition table ----
   comp_data <- prepare_composition_data(
-    seurat_obj,
-    sample_col   = sample_col,
-    celltype_col = celltype_col,
+    seurat_obj    = seurat_obj,
+    meta_data     = meta_data,
+    sample_col    = sample_col,
+    celltype_col  = celltype_col,
     condition_col = condition_col
   )
 

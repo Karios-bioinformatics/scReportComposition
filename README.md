@@ -52,6 +52,19 @@ sccomp_report(
 
 This produces `scReportComposition.html` — open it in any browser.
 
+**Without Seurat** — pass a plain data.frame of cell-level metadata:
+
+```r
+meta <- read.csv("cell_metadata.csv")  # columns: sample, cell_type, condition
+
+sccomp_report(
+  meta_data    = meta,
+  sample_col   = "sample",
+  celltype_col = "cell_type",
+  condition_col = "condition"
+)
+```
+
 ### API
 
 ```r

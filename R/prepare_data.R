@@ -1,15 +1,17 @@
 # scReportComposition: prepare_composition_data ----------------------------------
 #
-# Core data structure: builds a standardised composition table from a Seurat
-# object.  All downstream visualisations depend on this table.
+# Core data structure: builds a standardised composition table.
+# Supports both Seurat objects and raw data.frame metadata input.
+# All downstream visualisations depend on this table.
 #
 # Output columns: sample, celltype, n_cells, total_cells, fraction
 #   plus condition (when condition_col is provided)
 
 
-#' Prepare Composition Data from a Seurat Object
+#' Prepare Composition Data
 #'
 #' Builds a standardised composition table from cell-level metadata.
+#' Accepts either a Seurat object or a raw \code{data.frame}.
 #' This is the foundational data structure that all downstream
 #' visualisations depend on.
 #'
@@ -23,9 +25,13 @@
 #'   \item Returns a tidy data.frame with natural sort ordering
 #' }
 #'
-#' @param seurat_obj A Seurat object
-#' @param sample_col   Name of the sample column in \code{seurat_obj@meta.data}
-#' @param celltype_col Name of the cell-type column in metadata
+#' @param seurat_obj A Seurat object.  Ignored when \code{meta_data} is provided.
+#' @param meta_data A \code{data.frame} of cell-level metadata.  When provided,
+#'   it takes precedence over \code{seurat_obj}.  Must contain the columns named
+#'   by \code{sample_col}, \code{celltype_col}, and (optionally)
+#'   \code{condition_col}.
+#' @param sample_col   Name of the sample column
+#' @param celltype_col Name of the cell-type column
 #' @param condition_col Optional name of the condition column.  When \code{NULL}
 #'   (the default), no condition grouping is applied.
 #' @return A data.frame with columns \code{sample}, \code{celltype},
@@ -36,21 +42,41 @@
 #'
 #' @examples
 #' \dontrun{
+#' # From a Seurat object
 #' comp <- prepare_composition_data(
-#'   seurat_obj,
-#'   sample_col   = "orig.ident",
-#'   celltype_col = "cell_type",
+#'   seurat_obj    = obj,
+#'   sample_col    = "orig.ident",
+#'   celltype_col  = "cell_type",
 #'   condition_col = "condition"
 #' )
-#' head(comp)
+#'
+#' # From a raw data.frame
+#' comp <- prepare_composition_data(
+#'   meta_data     = my_metadata,
+#'   sample_col    = "sample",
+#'   celltype_col  = "cell_type"
+#' )
 #' }
-prepare_composition_data <- function(seurat_obj,
+prepare_composition_data <- function(seurat_obj   = NULL,
+                                      meta_data    = NULL,
                                       sample_col,
                                       celltype_col,
                                       condition_col = NULL) {
 
-  # ---- Extract metadata ----
-  meta <- seurat_obj@meta.data
+  # ---- Resolve metadata source ----
+  if (!is.null(meta_data)) {
+    if (!is.data.frame(meta_data)) {
+      stop("meta_data must be a data.frame", call. = FALSE)
+    }
+    meta <- meta_data
+  } else if (!is.null(seurat_obj)) {
+    meta <- seurat_obj@meta.data
+  } else {
+    stop(
+      "Please provide either 'seurat_obj' or 'meta_data'.",
+      call. = FALSE
+    )
+  }
 
   cols_needed <- c(sample_col, celltype_col)
   if (!is.null(condition_col)) {
@@ -60,7 +86,7 @@ prepare_composition_data <- function(seurat_obj,
   missing <- setdiff(cols_needed, colnames(meta))
   if (length(missing) > 0) {
     stop(
-      "seurat_obj@meta.data is missing required column(s): ",
+      "Metadata is missing required column(s): ",
       paste(missing, collapse = ", "),
       call. = FALSE
     )
@@ -163,7 +189,7 @@ prepare_composition_data <- function(seurat_obj,
     counts$condition <- factor(counts$condition, levels = all_conditions)
   }
 
-  # ---- Clean up internal columns from meta ----
+  # ---- Clean up internal columns ----
   meta$..sample    <- NULL
   meta$..celltype  <- NULL
   if (!is.null(condition_col)) meta$..condition <- NULL
@@ -174,10 +200,10 @@ prepare_composition_data <- function(seurat_obj,
 
   message(
     "Composition table built: ", nrow(counts), " rows (",
-    length(all_samples), " samples × ",
+    length(all_samples), " samples \u00d7 ",
     length(all_celltypes), " cell types",
     if (!is.null(condition_col))
-      paste0(" × ", length(all_conditions), " conditions"),
+      paste0(" \u00d7 ", length(all_conditions), " conditions"),
     ")"
   )
 
