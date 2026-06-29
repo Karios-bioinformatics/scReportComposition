@@ -31,6 +31,10 @@ body {
   height: 100vh; overflow: hidden;
 }
 
+.container {
+  height: 100vh; display: flex; flex-direction: column;
+}
+
 /* ---- Header ---- */
 .report-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -44,13 +48,14 @@ body {
   font-size: 0.8em; color: var(--sr-muted);
 }
 
-/* ---- Main layout ---- */
-.main-layout {
-  display: grid; grid-template-columns: 200px minmax(0, 1fr);
-  flex: 1; min-height: 0; overflow: hidden;
+/* ---- Body layout (below header) ---- */
+.report-body {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 220px minmax(0, 1fr);
+  overflow: hidden;
 }
 
-/* ---- Left Nav ---- */
+/* ---- Left Sidebar ---- */
 .comp-nav {
   background: #fff; border-right: 1px solid var(--sr-border);
   overflow-y: auto; padding: 12px 8px;
@@ -82,7 +87,7 @@ body {
 
 /* ---- Content area ---- */
 .comp-content {
-  flex: 1; min-width: 0; min-height: 0;
+  min-width: 0; min-height: 0;
   overflow-y: auto; padding: 20px 24px 40px;
 }
 
@@ -170,8 +175,10 @@ body {
 
 /* ---- Footer ---- */
 .report-footer {
-  text-align: center; padding: 20px 0 32px;
-  font-size: 0.75em; color: var(--sr-muted);
+  flex-shrink: 0;
+  text-align: center; padding: 10px 0;
+  font-size: 0.72em; color: var(--sr-muted);
+  border-top: 1px solid var(--sr-border);
 }
 
 /* ---- No-data placeholder ---- */
@@ -182,7 +189,7 @@ body {
 
 /* ---- Responsive ---- */
 @media (max-width: 800px) {
-  .main-layout { grid-template-columns: 1fr; }
+  .report-body { grid-template-columns: 1fr; }
   .comp-nav { display: none; }
 }
 '
@@ -197,15 +204,12 @@ report_js <- function() {
 // Section navigation + Plotly resize
 
 function switchSection(name) {
-  // Deactivate all nav items
   var items = document.querySelectorAll(".comp-nav-item");
   items.forEach(function(el) { el.classList.remove("active"); });
 
-  // Activate clicked item
   var target = document.getElementById("nav-" + name);
   if (target) target.classList.add("active");
 
-  // Show active section, hide others
   var sections = document.querySelectorAll(".comp-section");
   sections.forEach(function(s) { s.classList.remove("comp-visible"); });
 
@@ -214,7 +218,6 @@ function switchSection(name) {
     targetSection.classList.add("comp-visible");
   }
 
-  // Resize Plotly charts in the newly visible section
   setTimeout(function() {
     var plots = targetSection
       ? targetSection.querySelectorAll(".js-plotly-plot")
@@ -253,7 +256,7 @@ build_summary_cards <- function(summary) {
     ))
   }
 
-  # Cells per sample
+  # Cells per sample detail
   cps <- paste(
     names(summary$cells_per_sample),
     fmt_num(summary$cells_per_sample),
@@ -273,9 +276,7 @@ build_summary_cards <- function(summary) {
       sep = ": ", collapse = "  |  "
     )
     cards <- c(cards, list(card(
-      "Cells / Condition",
-      "",
-      cpc
+      "Cells / Condition", "", cpc
     )))
   }
 
@@ -287,9 +288,7 @@ build_summary_cards <- function(summary) {
       sep = ": ", collapse = "  |  "
     )
     cards <- c(cards, list(card(
-      "Samples / Condition",
-      "",
-      spc
+      "Samples / Condition", "", spc
     )))
   }
 
@@ -312,87 +311,62 @@ card <- function(label, value, detail = NULL) {
 
 # ---- Section builders ----------------------------------------------------------
 
-# Build a navigation item
 nav_item <- function(id, label) {
   htmltools::tags$div(
     class = "comp-nav-item",
-    id    = paste0("nav-", id),
-    onclick = paste0("switchSection('", id, "')"),
+    id = paste0("nav-", id),
+    onclick = paste0("switchSection(", shQuote(id), ")"),
     htmltools::tags$span(class = "comp-nav-dot"),
     label
   )
 }
 
-# Build a content section
 comp_section <- function(id, title, ..., visible = FALSE) {
   htmltools::tags$div(
     class = paste("comp-section", if (visible) "comp-visible" else ""),
-    id    = paste0("section-", id),
+    id = paste0("section-", id),
     htmltools::tags$div(class = "comp-section-title", title),
     ...
   )
 }
 
-# Build a plot block
 plot_block <- function(title, widget) {
   htmltools::tags$div(
     class = "comp-plot-block",
     htmltools::tags$div(class = "comp-plot-title", title),
-    htmltools::tags$div(
-      class = "comp-plot-body",
-      htmltools::as.tags(widget)
-    )
+    htmltools::tags$div(class = "comp-plot-body",
+                        htmltools::as.tags(widget))
   )
 }
 
 
 # ---- HTML Assembly -------------------------------------------------------------
 
-#' Assemble and Write the Full Composition HTML Report
-#'
-#' @param summary A list from \code{build_summary()}
-#' @param plots A named list of plotly widgets (see Details)
-#' @param comp_table An \code{htmltools} tag from \code{render_composition_table()}
-#' @param output Path to output HTML file
-#' @param title Report title string
-#' @return Invisibly, the path to the output file
-#' @keywords internal
-#'
-#' @details
-#' The \code{plots} list may contain:
-#' \describe{
-#'   \item{p_sample_count}{Sample count stacked bar}
-#'   \item{p_sample_frac}{Sample fraction stacked bar}
-#'   \item{p_cond_count}{Condition count stacked bar (NULL if no condition)}
-#'   \item{p_cond_frac}{Condition fraction stacked bar (NULL if no condition)}
-#'   \item{p_ct_frac_by_cond}{Cell-type fraction by condition boxplot}
-#'   \item{p_ct_count_by_cond}{Cell-type count by condition boxplot}
-#'   \item{p_heatmap_sample}{Sample heatmap}
-#'   \item{p_heatmap_cond}{Condition heatmap (NULL if no condition)}
-#' }
 build_html <- function(summary, plots, comp_table,
                         output, title = "scReportComposition") {
 
   has_cond <- !is.na(summary$n_conditions)
 
-  # ---- Sections ----
+  # ---- Build sections ----
   sections <- list()
 
-  # 1. Overview
-  sections$overview <- comp_section("overview", "Overview", visible = TRUE,
+  sections$overview <- comp_section(
+    "overview", "Overview", visible = TRUE,
     htmltools::tags$div(class = "summary-cards",
                         build_summary_cards(summary))
   )
 
-  # 2. Sample Composition (counts + fractions)
-  sections$sample <- comp_section("sample", "Sample Composition",
-    plot_block("Cell Counts per Sample", plots$p_sample_count),
-    plot_block("Cell Fractions per Sample", plots$p_sample_frac)
+  sections$sample <- comp_section(
+    "sample", "Sample Composition",
+    if (!is.null(plots$p_sample_count))
+      plot_block("Cell Counts per Sample", plots$p_sample_count),
+    if (!is.null(plots$p_sample_frac))
+      plot_block("Cell Fractions per Sample", plots$p_sample_frac)
   )
 
-  # 3. Condition Composition (if applicable)
   if (has_cond) {
-    sections$condition <- comp_section("condition", "Condition Composition",
+    sections$condition <- comp_section(
+      "condition", "Condition Composition",
       if (!is.null(plots$p_cond_count))
         plot_block("Cell Counts per Condition", plots$p_cond_count),
       if (!is.null(plots$p_cond_frac))
@@ -400,9 +374,9 @@ build_html <- function(summary, plots, comp_table,
     )
   }
 
-  # 4. Cell Type Distribution (if condition present)
   if (has_cond) {
-    sections$ctdist <- comp_section("ctdist", "Cell Type Distribution",
+    sections$ctdist <- comp_section(
+      "ctdist", "Cell Type Distribution",
       if (!is.null(plots$p_ct_frac_by_cond))
         plot_block("Fraction by Condition", plots$p_ct_frac_by_cond),
       if (!is.null(plots$p_ct_count_by_cond))
@@ -410,37 +384,53 @@ build_html <- function(summary, plots, comp_table,
     )
   }
 
-  # 5. Heatmaps
-  sections$heatmaps <- comp_section("heatmaps", "Heatmaps",
+  sections$heatmaps <- comp_section(
+    "heatmaps", "Heatmaps",
     if (!is.null(plots$p_heatmap_sample))
-      plot_block("Sample × Cell Type", plots$p_heatmap_sample),
+      plot_block("Sample x Cell Type", plots$p_heatmap_sample),
     if (!is.null(plots$p_heatmap_cond))
-      plot_block("Condition × Cell Type", plots$p_heatmap_cond)
+      plot_block("Condition x Cell Type", plots$p_heatmap_cond)
   )
 
-  # 6. Table
-  sections$table <- comp_section("table", "Composition Table", comp_table)
+  sections$table <- comp_section(
+    "table", "Composition Table", comp_table
+  )
 
-  # ---- Navigation ----
+  # ---- Build navigation ----
   nav_items <- list(
     htmltools::tags$div(class = "comp-nav-label", "Report"),
     nav_item("overview", "Overview"),
-    nav_item("sample", "Sample Comp.")
+    nav_item("sample", "Sample Composition")
   )
 
   if (has_cond) {
     nav_items <- c(nav_items, list(
-      nav_item("condition", "Condition Comp."),
-      nav_item("ctdist", "CT Distribution")
+      nav_item("condition", "Condition Composition"),
+      nav_item("ctdist", "Cell Type Distribution")
     ))
   }
 
   nav_items <- c(nav_items, list(
     nav_item("heatmaps", "Heatmaps"),
-    nav_item("table", "Table")
+    nav_item("table", "Composition Table")
   ))
 
-  # ---- Build page ----
+  # ---- Build full page ----
+  header <- htmltools::tags$header(class = "report-header",
+    htmltools::tags$div(class = "report-title", title),
+    htmltools::tags$div(class = "report-meta",
+      "Cell Composition Report \u2014 scReportComposition v0.1.0")
+  )
+
+  sidebar <- htmltools::tags$nav(class = "comp-nav", nav_items)
+  main    <- htmltools::tags$main(class = "comp-content", sections)
+  footer  <- htmltools::tags$footer(class = "report-footer",
+    "Generated by scReportComposition v0.1.0  |  scReport Ecosystem")
+
+  script_tag <- htmltools::tags$script(
+    htmltools::HTML(report_js())
+  )
+
   page <- htmltools::tagList(
     htmltools::tags$head(
       htmltools::tags$meta(charset = "UTF-8"),
@@ -451,33 +441,15 @@ build_html <- function(summary, plots, comp_table,
       htmltools::tags$title(title),
       htmltools::tags$style(htmltools::HTML(report_css()))
     ),
-
     htmltools::tags$body(
-      # Header
-      htmltools::tags$header(class = "report-header",
-        htmltools::tags$div(class = "report-title", title),
-        htmltools::tags$div(class = "report-meta",
-          "Cell Composition Report — scReportComposition v0.1.0")
+      htmltools::tags$div(class = "container",
+        header,
+        htmltools::tags$div(class = "report-body",
+          sidebar, main
+        ),
+        footer
       ),
-
-      # Main layout
-      htmltools::tags$div(class = "main-layout",
-
-        # Left nav
-        htmltools::tags$nav(class = "comp-nav", nav_items),
-
-        # Content
-        htmltools::tags$main(class = "comp-content", sections)
-      ),
-
-      # Footer
-      htmltools::tags$footer(class = "report-footer",
-        "Generated by scReportComposition v0.1.0  |  scReport Ecosystem"
-      ),
-
-      # JS
-      htmltools::tags$script(htmltools::HTML(report_js()))
-
+      script_tag
     )
   )
 
