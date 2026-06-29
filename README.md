@@ -4,7 +4,7 @@
   <strong>A full-featured cell composition reporting module for single-cell bioinformatics.</strong>
 </p>
 
-<p align="center"><img src="https://img.shields.io/badge/Version-v0.1.0-blue" alt="Version"> <img src="https://img.shields.io/badge/Status-Functional-success" alt="Status"> <img src="https://img.shields.io/badge/Layer-scReport%20Module-lightgrey" alt="Layer"> <img src="https://img.shields.io/badge/Focus-Cell%20Composition-purple" alt="Focus"> <a href="https://doi.org/10.5281/zenodo.20955461"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.20955461.svg" alt="DOI"></a> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></p>
+<p align="center"><img src="https://img.shields.io/badge/Version-v0.1.0-blue" alt="Version"> <img src="https://img.shields.io/badge/Status-Functional-success" alt="Status"> <img src="https://img.shields.io/badge/Layer-scReport%20Module-lightgrey" alt="Layer"> <img src="https://img.shields.io/badge/Focus-Cell%20Composition-purple" alt="Focus"> <a href="https://doi.org/10.5281/zenodo.20955461"><img src="https://zenodo.org/badge/1280164558.svg" alt="DOI"></a> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></p>
 
 ## Overview
 
