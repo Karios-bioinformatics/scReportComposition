@@ -1,15 +1,16 @@
 # scReportComposition: build_comp_audit_warnings.R — Warning Detection ----------
 #
 # Generates warning_table from intermediate composition tables.
-# 7 warning types, each with severity (high/medium/low).
+# 8 warning types, each with severity (high/medium/low).
 # All warnings are descriptive — no statistical inference.
 
 
 #' Build Warning Table
 #'
 #' Scans all intermediate tables and generates warnings for:
-#' low sample/identity cell counts, group size < 2,
-#' sample dominance, group-batch confounding, and a descriptive-only flag.
+#' missing metadata, sample-group inconsistency, low sample/identity cell counts,
+#' group size < 2, sample dominance, group-batch confounding, and a
+#' descriptive-only flag.
 #'
 #' @param tables Named list from \code{build_all_composition_tables()}
 #' @param min_cells_per_sample   Threshold for low-sample warning
@@ -27,12 +28,58 @@ build_warning_table <- function(tables,
 
   warnings <- list()
 
+  comp_meta             <- tables$comp_meta
   sample_total          <- tables$sample_total
   count_table           <- tables$count_table
   prop_table            <- tables$prop_table
   dominance_table       <- tables$dominance_table
 
-  # ---- 1. Low sample cell count ----
+  # ---- 1. Missing metadata (NA values) ----
+  na_fields <- c("sample", "group", "identity")
+  if (!is.null(batch_col) && "batch" %in% names(comp_meta)) {
+    na_fields <- c(na_fields, "batch")
+  }
+  for (field in na_fields) {
+    if (field %in% names(comp_meta)) {
+      n_na <- sum(is.na(comp_meta[[field]]))
+      if (n_na > 0) {
+        warnings[[length(warnings) + 1]] <- data.frame(
+          warning_type = "missing_metadata",
+          severity     = "high",
+          target       = field,
+          message      = sprintf(
+            "Metadata column '%s' contains %d missing value(s).",
+            field, n_na
+          ),
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+  }
+
+  # ---- 2. Inconsistent sample-group mapping ----
+  sg_map <- unique(comp_meta[, c("sample", "group"), drop = FALSE])
+  sg_counts <- table(sg_map$sample)
+  multi_group_samples <- names(sg_counts[sg_counts > 1])
+  if (length(multi_group_samples) > 0) {
+    for (s in multi_group_samples) {
+      groups_for_sample <- unique(
+        sg_map$group[sg_map$sample == s]
+      )
+      warnings[[length(warnings) + 1]] <- data.frame(
+        warning_type = "inconsistent_sample_group",
+        severity     = "high",
+        target       = s,
+        message      = sprintf(
+          "Sample %s is associated with multiple groups (%s). Sample-level composition may be invalid.",
+          s, paste(groups_for_sample, collapse = ", ")
+        ),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+
+  # ---- 3. Low sample cell count ----
   low_samples <- sample_total$sample[
     sample_total$total_cells < min_cells_per_sample
   ]
@@ -52,7 +99,7 @@ build_warning_table <- function(tables,
     }
   }
 
-  # ---- 2. Low identity cell count ----
+  # ---- 4. Low identity cell count ----
   id_totals <- stats::aggregate(
     n_cells ~ identity, data = count_table, FUN = sum
   )
@@ -73,7 +120,7 @@ build_warning_table <- function(tables,
     }
   }
 
-  # ---- 3. Group n < 2 ----
+  # ---- 5. Group n < 2 ----
   group_n <- stats::aggregate(
     sample ~ group,
     data = unique(prop_table[, c("sample", "group")]),
@@ -98,7 +145,7 @@ build_warning_table <- function(tables,
     }
   }
 
-  # ---- 4. Sample dominance ----
+  # ---- 6. Sample dominance ----
   for (i in seq_len(nrow(dominance_table))) {
     row <- dominance_table[i, ]
     if (row$max_sample_contribution >= dominance_threshold) {
@@ -108,7 +155,7 @@ build_warning_table <- function(tables,
         severity     = "high",
         target       = row$identity,
         message      = sprintf(
-          "Identity %s is dominated by sample %s (%s%% of cells). This suggests a sample-specific composition pattern that requires further QC, batch, and marker validation.",
+          "Identity %s is dominated by sample %s (%s%% of cells), suggesting a sample-specific composition pattern. Interpret with caution.",
           row$identity, row$dominant_sample, pct
         ),
         stringsAsFactors = FALSE
@@ -116,7 +163,7 @@ build_warning_table <- function(tables,
     }
   }
 
-  # ---- 5. Group-batch confounding ----
+  # ---- 7. Group-batch confounding ----
   if (!is.null(batch_col) && "batch" %in% names(sample_total)) {
     gb <- unique(sample_total[, c("group", "batch"), drop = FALSE])
 
@@ -140,12 +187,12 @@ build_warning_table <- function(tables,
     }
   }
 
-  # ---- 6. Descriptive-only banner ----
+  # ---- 8. Descriptive-only banner ----
   if (length(small_groups) > 0) {
     warnings[[length(warnings) + 1]] <- data.frame(
       warning_type = "descriptive_only",
       severity     = "high",
-      target       = "report",
+      target       = "global",
       message      = paste(
         "Some groups have fewer than 2 samples.",
         "This report provides descriptive composition summaries only;",

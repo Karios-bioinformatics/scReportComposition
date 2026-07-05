@@ -12,6 +12,19 @@
 # Plot 7: Sample-level identity proportions by group
 
 
+# ---- Sample display order helper ---------------------------------------------
+
+#' Sort samples by group then within-group natural order
+#'
+#' @param sample_total data.frame with sample and group columns
+#' @return Sorted character vector of sample names
+#' @keywords internal
+sample_display_order <- function(sample_total) {
+  st <- sample_total[order(sample_total$group, natural_sort(as.character(sample_total$sample))), ]
+  as.character(st$sample)
+}
+
+
 # ---- Plot 1: Sample total cell count ------------------------------------------
 
 #' Plot 1 — Sample Total Cell Count
@@ -25,7 +38,7 @@
 plot_sample_total_cells <- function(sample_total, group_colors) {
   groups      <- names(group_colors)
   group_cols  <- unname(group_colors)
-  samples     <- as.character(sample_total$sample)
+  samples     <- sample_display_order(sample_total)
 
   sample_total$hover <- sprintf(
     "<b>%s</b><br>Group: %s<br>Total cells: %s",
@@ -83,10 +96,14 @@ plot_sample_total_cells <- function(sample_total, group_colors) {
 #' @param identity_colors Named colour vector for identities
 #' @return A plotly htmlwidget
 #' @keywords internal
-plot_composition_by_sample <- function(prop_table, identity_colors) {
+plot_composition_by_sample <- function(prop_table, identity_colors, sample_total = NULL) {
   id_names <- names(identity_colors)
   id_cols  <- unname(identity_colors)
-  samples  <- levels(prop_table$sample)
+  if (!is.null(sample_total)) {
+    samples <- sample_display_order(sample_total)
+  } else {
+    samples <- levels(prop_table$sample)
+  }
 
   prop_table$hover <- sprintf(
     "<b>%s</b><br>Sample: %s<br>Cells: %s / %s<br>Proportion: %.1f%%",
@@ -145,10 +162,14 @@ plot_composition_by_sample <- function(prop_table, identity_colors) {
 #' @param count_table data.frame for identity ordering
 #' @return A plotly htmlwidget
 #' @keywords internal
-plot_identity_proportion_heatmap <- function(prop_table, count_table = NULL) {
+plot_identity_proportion_heatmap <- function(prop_table, count_table = NULL, sample_total = NULL) {
   # Sort identity axis
   id_levels <- identity_display_order(levels(prop_table$identity), count_table)
-  samples   <- levels(prop_table$sample)
+  if (!is.null(sample_total)) {
+    samples <- sample_display_order(sample_total)
+  } else {
+    samples <- levels(prop_table$sample)
+  }
 
   # Build matrix
   mat <- matrix(0, nrow = length(id_levels), ncol = length(samples),
@@ -207,10 +228,15 @@ plot_identity_proportion_heatmap <- function(prop_table, count_table = NULL) {
 #' @return A plotly htmlwidget
 #' @keywords internal
 plot_sample_contribution_heatmap <- function(identity_sample_contribution,
-                                              count_table = NULL) {
+                                              count_table = NULL,
+                                              sample_total = NULL) {
   ids     <- unique(identity_sample_contribution$identity)
   id_levels <- identity_display_order(ids, count_table)
-  samples <- natural_sort(unique(identity_sample_contribution$sample))
+  if (!is.null(sample_total)) {
+    samples <- sample_display_order(sample_total)
+  } else {
+    samples <- natural_sort(unique(identity_sample_contribution$sample))
+  }
 
   # Build matrix
   mat <- matrix(0, nrow = length(id_levels), ncol = length(samples),
@@ -615,17 +641,17 @@ build_all_composition_plots <- function(tables,
 
   message("  Plot 2: Identity composition by sample")
   plots$composition_by_sample <- plot_composition_by_sample(
-    tables$prop_table, identity_colors
+    tables$prop_table, identity_colors, tables$sample_total
   )
 
   message("  Plot 3: Identity proportion heatmap")
   plots$proportion_heatmap <- plot_identity_proportion_heatmap(
-    tables$prop_table, tables$count_table
+    tables$prop_table, tables$count_table, tables$sample_total
   )
 
   message("  Plot 4: Sample contribution heatmap")
   plots$sample_contribution_heatmap <- plot_sample_contribution_heatmap(
-    tables$identity_sample_contribution, tables$count_table
+    tables$identity_sample_contribution, tables$count_table, tables$sample_total
   )
 
   message("  Plot 5: Maximum sample contribution")
