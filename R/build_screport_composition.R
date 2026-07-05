@@ -154,39 +154,16 @@ build_screport_composition <- function(seurat_obj,
     seurat_obj, sample_col, group_col, identity_col_used, batch_col
   )
 
-  # ---- 3. Top N identity filter (optional) ----
-  if (!is.null(top_n_identity) && is.numeric(top_n_identity)) {
-    id_totals <- stats::aggregate(
-      n_cells ~ identity, data = tables$count_table, FUN = sum
-    )
-    id_totals <- id_totals[order(id_totals$n_cells, decreasing = TRUE), ]
-    keep_ids <- as.character(id_totals$identity[seq_len(min(top_n_identity, nrow(id_totals)))])
-
-    message("Filtering to top ", length(keep_ids), " identities (top_n_identity = ",
-            top_n_identity, ")")
-
-    tables$comp_meta <- tables$comp_meta[
-      tables$comp_meta$identity %in% keep_ids,
-    ]
-    tables$count_table <- tables$count_table[
-      tables$count_table$identity %in% keep_ids,
-    ]
-    tables$count_table$identity <- factor(
-      tables$count_table$identity, levels = keep_ids
-    )
-
-    # Rebuild dependent tables
-    tables$prop_table <- build_prop_table(tables$count_table)
-    tables$sample_total <- build_sample_total(
-      tables$prop_table, batch_col, tables$comp_meta
-    )
-    tables$group_summary <- build_group_summary(tables$prop_table)
-    tables$identity_sample_contribution <- build_identity_sample_contribution(
-      tables$count_table
-    )
-    tables$dominance_table <- build_dominance_table(
-      tables$identity_sample_contribution
-    )
+  # ---- 3. Top N identity filter (disabled) ----
+  # NOTE: top_n_identity is accepted but not yet implemented.
+  # Filtering and rebuilding dependent tables would change the denominator
+  # of sample-level proportions (total_cells would exclude non-top identities),
+  # violating the semantic contract that proportion = n_cells / sample_total_cells.
+  # Future implementation: if top_n_identity is set, merge non-top identities
+  # into an "Other" category so sample total_cells stays intact.
+  if (!is.null(top_n_identity)) {
+    message("top_n_identity is not yet implemented and will be ignored. ",
+            "All identities are retained.")
   }
 
   # ---- 4. Build warnings ----

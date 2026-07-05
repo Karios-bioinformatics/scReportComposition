@@ -16,12 +16,23 @@
 
 #' Sort samples by group then within-group natural order
 #'
+#' Computes a natural-sort rank for each sample, then orders by
+#' group first and rank second so samples are grouped visually.
+#'
 #' @param sample_total data.frame with sample and group columns
 #' @return Sorted character vector of sample names
 #' @keywords internal
 sample_display_order <- function(sample_total) {
-  st <- sample_total[order(sample_total$group, natural_sort(as.character(sample_total$sample))), ]
-  as.character(st$sample)
+  samples <- as.character(sample_total$sample)
+  groups  <- as.character(sample_total$group)
+
+  # Compute natural-sort rank of each sample within the whole set
+  sorted_all <- natural_sort(samples)
+  rank <- match(samples, sorted_all)
+
+  # Order by group first, then by natural-sort rank
+  idx <- order(groups, rank)
+  samples[idx]
 }
 
 
@@ -325,17 +336,7 @@ plot_max_sample_contribution <- function(dominance_table, dominance_threshold = 
     )
   )
 
-  # Add threshold reference line
-  p <- plotly::add_segments(p,
-    x    = dominance_threshold,
-    xend = dominance_threshold,
-    y    = 0,
-    yend = nrow(dom) + 0.5,
-    line = list(dash = "dash", color = "#d63031", width = 1.5),
-    name = paste0("threshold = ", dominance_threshold),
-    hoverinfo = "none"
-  )
-
+  # Add threshold reference line via layout shapes (yref=paper, categorical-axis safe)
   p <- plotly::layout(p,
     title  = list(text = "Maximum sample contribution per identity",
                   font = list(size = 14)),
@@ -346,7 +347,28 @@ plot_max_sample_contribution <- function(dominance_table, dominance_threshold = 
     ),
     yaxis  = list(title = ""),
     margin = list(l = 120, r = 30, b = 60, t = 40),
-    legend = list(orientation = "h", y = -0.15),
+    shapes = list(
+      list(
+        type      = "line",
+        x0        = dominance_threshold,
+        x1        = dominance_threshold,
+        y0        = 0,
+        y1        = 1,
+        yref      = "paper",
+        line      = list(dash = "dash", color = "#d63031", width = 1.5)
+      )
+    ),
+    annotations = list(
+      list(
+        x         = dominance_threshold,
+        y         = 1.02,
+        yref      = "paper",
+        text      = paste0("threshold = ", dominance_threshold),
+        showarrow = FALSE,
+        font      = list(size = 10, color = "#d63031"),
+        xanchor   = "left"
+      )
+    ),
     hovermode = "closest"
   )
 
