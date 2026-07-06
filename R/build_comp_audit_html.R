@@ -677,24 +677,24 @@ build_comp_audit_html <- function(output, title, params,
   has_warn <- n_high > 0
 
   # ---- Section 1: Overview ----
-    audit_comp_section("overview", "Overview", visible = TRUE,
+  overview <- audit_comp_section("overview", "Overview", visible = TRUE,
     htmltools::tags$div(class = "summary-cards",
                          build_overview_cards(params))
   )
 
   # ---- Section 2: Warnings ----
-    audit_comp_section("warnings", "Warnings",
+  warnings_sec <- audit_comp_section("warnings", "Warnings",
     build_warning_content(warning_table)
   )
 
   # ---- Section 3: Metadata Audit ----
-    audit_comp_section("audit", "Metadata Audit",
+  audit <- audit_comp_section("audit", "Metadata Audit",
     build_audit_content(tables, batch_col),
     audit_plot_block("Plot 1: Sample total cell count", plots$sample_total)
   )
 
   # ---- Section 4: Sample-Level Composition ----
-    audit_comp_section("sample", "Sample-Level Composition",
+  sample_sec <- audit_comp_section("sample", "Sample-Level Composition",
     audit_plot_block("Plot 2: Identity composition by sample",
                plots$composition_by_sample),
     audit_plot_block("Plot 3: Identity proportion heatmap",
@@ -711,7 +711,7 @@ build_comp_audit_html <- function(output, title, params,
                plots$sample_level_by_group)
   )
 
-    audit_comp_section("group", group_title,
+  group_sec <- audit_comp_section("group", group_title,
     if (has_small) htmltools::tags$div(
       class = "descriptive-only-banner",
       "\u26A0 Caution: one or more groups have fewer than 2 samples; group-level summaries are descriptive only."
@@ -750,11 +750,11 @@ build_comp_audit_html <- function(output, title, params,
     )
   }
 
-    audit_comp_section("dominance", "Sample Dominance / Outlier", dom_items)
+  dom_sec <- audit_comp_section("dominance", "Sample Dominance / Outlier", dom_items)
 
   # ---- Section 7: Tables / Methods ----
   tbls <- tables
-    audit_comp_section("methods", "Tables / Methods",
+  methods_sec <- audit_comp_section("methods", "Tables / Methods",
     htmltools::tags$div(
       class = "comp-section-title",
       style = "font-size:0.88em; margin-bottom:12px; padding-bottom:6px;",
