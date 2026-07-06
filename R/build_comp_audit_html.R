@@ -351,17 +351,17 @@ window.addEventListener("resize", function() {
 #' @keywords internal
 build_overview_cards <- function(params) {
   list(
-    card("Total Cells",     fmt_num(params$n_cells)),
-    card("Samples",         as.character(params$n_samples)),
-    card("Groups",          as.character(params$n_groups)),
-    card("Identities",      as.character(params$n_identities)),
-    card("Identity Column", params$identity_col_used),
-    card("Sample Column",   params$sample_col),
-    card("Group Column",    params$group_col)
+    audit_card("Total Cells",     fmt_num(params$n_cells)),
+    audit_card("Samples",         as.character(params$n_samples)),
+    audit_card("Groups",          as.character(params$n_groups)),
+    audit_card("Identities",      as.character(params$n_identities)),
+    audit_card("Identity Column", params$identity_col_used),
+    audit_card("Sample Column",   params$sample_col),
+    audit_card("Group Column",    params$group_col)
   )
 }
 
-card <- function(label, value) {
+audit_card <- function(label, value) {
   htmltools::tags$div(
     class = "summary-card",
     htmltools::tags$div(class = "summary-card-value", value),
@@ -619,7 +619,7 @@ build_methods_content <- function() {
 
 #' Plot block wrapper
 #' @keywords internal
-plot_block <- function(title, widget) {
+audit_plot_block <- function(title, widget) {
   if (is.null(widget)) return(NULL)
   htmltools::tags$div(
     class = "plot-block",
@@ -633,7 +633,7 @@ plot_block <- function(title, widget) {
 
 #' Build a report section
 #' @keywords internal
-comp_section <- function(id, title, ..., visible = FALSE) {
+audit_comp_section <- function(id, title, ..., visible = FALSE) {
   htmltools::tags$div(
     class = paste("comp-section", if (visible) "comp-visible" else ""),
     id = paste0("section-", id),
@@ -644,7 +644,7 @@ comp_section <- function(id, title, ..., visible = FALSE) {
 
 #' Build a nav item
 #' @keywords internal
-nav_item <- function(id, label, has_warn = FALSE) {
+audit_nav_item <- function(id, label, has_warn = FALSE) {
   htmltools::tags$div(
     class = paste("comp-nav-item", if (has_warn) "has-warn" else ""),
     id = paste0("nav-", id),
@@ -677,27 +677,27 @@ build_comp_audit_html <- function(output, title, params,
   has_warn <- n_high > 0
 
   # ---- Section 1: Overview ----
-  overview <- comp_section("overview", "Overview", visible = TRUE,
+    audit_comp_section("overview", "Overview", visible = TRUE,
     htmltools::tags$div(class = "summary-cards",
                          build_overview_cards(params))
   )
 
   # ---- Section 2: Warnings ----
-  warnings_sec <- comp_section("warnings", "Warnings",
+    audit_comp_section("warnings", "Warnings",
     build_warning_content(warning_table)
   )
 
   # ---- Section 3: Metadata Audit ----
-  audit <- comp_section("audit", "Metadata Audit",
+    audit_comp_section("audit", "Metadata Audit",
     build_audit_content(tables, batch_col),
-    plot_block("Plot 1: Sample total cell count", plots$sample_total)
+    audit_plot_block("Plot 1: Sample total cell count", plots$sample_total)
   )
 
   # ---- Section 4: Sample-Level Composition ----
-  sample_sec <- comp_section("sample", "Sample-Level Composition",
-    plot_block("Plot 2: Identity composition by sample",
+    audit_comp_section("sample", "Sample-Level Composition",
+    audit_plot_block("Plot 2: Identity composition by sample",
                plots$composition_by_sample),
-    plot_block("Plot 3: Identity proportion heatmap",
+    audit_plot_block("Plot 3: Identity proportion heatmap",
                plots$proportion_heatmap)
   )
 
@@ -705,13 +705,13 @@ build_comp_audit_html <- function(output, title, params,
   has_small <- any(warning_table$warning_type == "group_n_less_than_2")
   group_title <- "Group-Level Descriptive Composition"
   group_plots <- list(
-    plot_block("Plot 6: Descriptive identity composition by group",
+    audit_plot_block("Plot 6: Descriptive identity composition by group",
                plots$composition_by_group),
-    plot_block("Plot 7: Sample-level identity proportions by group",
+    audit_plot_block("Plot 7: Sample-level identity proportions by group",
                plots$sample_level_by_group)
   )
 
-  group_sec <- comp_section("group", group_title,
+    audit_comp_section("group", group_title,
     if (has_small) htmltools::tags$div(
       class = "descriptive-only-banner",
       "\u26A0 Caution: one or more groups have fewer than 2 samples; group-level summaries are descriptive only."
@@ -721,9 +721,9 @@ build_comp_audit_html <- function(output, title, params,
 
   # ---- Section 6: Sample Dominance ----
   dom_items <- list(
-    plot_block("Plot 4: Sample contribution within each identity",
+    audit_plot_block("Plot 4: Sample contribution within each identity",
                plots$sample_contribution_heatmap),
-    plot_block("Plot 5: Maximum sample contribution per identity",
+    audit_plot_block("Plot 5: Maximum sample contribution per identity",
                plots$max_sample_contribution),
     htmltools::tags$div(
       class = "plot-block",
@@ -750,11 +750,11 @@ build_comp_audit_html <- function(output, title, params,
     )
   }
 
-  dom_sec <- comp_section("dominance", "Sample Dominance / Outlier", dom_items)
+    audit_comp_section("dominance", "Sample Dominance / Outlier", dom_items)
 
   # ---- Section 7: Tables / Methods ----
   tbls <- tables
-  methods_sec <- comp_section("methods", "Tables / Methods",
+    audit_comp_section("methods", "Tables / Methods",
     htmltools::tags$div(
       class = "comp-section-title",
       style = "font-size:0.88em; margin-bottom:12px; padding-bottom:6px;",
@@ -783,15 +783,15 @@ build_comp_audit_html <- function(output, title, params,
   # ---- Build sidebar ----
   nav_items <- list(
     htmltools::tags$div(class = "comp-nav-label", "Report"),
-    nav_item("overview", "Overview"),
-    nav_item("warnings",
+    audit_nav_item("overview", "Overview"),
+    audit_nav_item("warnings",
              sprintf("Warnings (%d)", n_warn),
              has_warn = has_warn),
-    nav_item("audit", "Metadata Audit"),
-    nav_item("sample", "Sample-Level"),
-    nav_item("group", "Group-Level"),
-    nav_item("dominance", "Dominance"),
-    nav_item("methods", "Tables / Methods")
+    audit_nav_item("audit", "Metadata Audit"),
+    audit_nav_item("sample", "Sample-Level"),
+    audit_nav_item("group", "Group-Level"),
+    audit_nav_item("dominance", "Dominance"),
+    audit_nav_item("methods", "Tables / Methods")
   )
 
   # ---- Header ----
