@@ -53,43 +53,41 @@ body {
 .report-meta { font-size: 0.75em; opacity: 0.9; }
 .report-meta span { margin-left: 16px; white-space: nowrap; }
 
-/* ---- Body layout ---- */
-.report-body {
-  flex: 1; min-height: 0;
-  display: grid; grid-template-columns: 200px minmax(0, 1fr);
-  overflow: hidden;
-}
-
-/* ---- Left Sidebar ---- */
+/* ---- Top tab navigation ---- */
 .comp-nav {
-  background: #fff; border-right: 1px solid var(--sr-border);
-  overflow-y: auto; padding: 10px 6px;
-  display: flex; flex-direction: column; gap: 2px;
+  flex-shrink: 0;
+  display: flex; flex-direction: row; align-items: stretch;
+  background: #fff; border-bottom: 1px solid var(--sr-border);
+  overflow-x: auto; overflow-y: hidden;
+  padding: 0 12px;
+  -webkit-overflow-scrolling: touch;
 }
-.comp-nav-label {
-  font-size: 0.68em; font-weight: 700; color: var(--sr-light-muted);
-  text-transform: uppercase; letter-spacing: 0.5px;
-  padding: 4px 8px; margin-top: 10px;
-}
-.comp-nav-label:first-child { margin-top: 0; }
+.comp-nav::-webkit-scrollbar { height: 3px; }
+.comp-nav::-webkit-scrollbar-thumb { background: var(--sr-light-muted); border-radius: 2px; }
+.comp-nav-label { display: none; }
 .comp-nav-item {
-  display: flex; align-items: center; padding: 6px 8px;
-  cursor: pointer; border-radius: var(--sr-radius-sm);
-  font-size: 0.8em; color: var(--sr-muted);
-  transition: background 0.15s, color 0.15s;
-  user-select: none; border-left: 3px solid transparent; gap: 6px;
+  display: flex; align-items: center;
+  padding: 10px 14px;
+  cursor: pointer; font-size: 0.82em; color: var(--sr-muted);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  user-select: none;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  gap: 6px;
+  flex-shrink: 0;
 }
 .comp-nav-item:hover { background: var(--sr-accent-soft); }
 .comp-nav-item.active {
   background: var(--sr-accent-soft);
-  border-left-color: var(--sr-accent); font-weight: 600; color: var(--sr-text);
+  border-bottom-color: var(--sr-accent); font-weight: 600; color: var(--sr-text);
 }
-.comp-nav-dot {
-  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-  background: var(--sr-accent); opacity: 0; transition: opacity 0.15s;
-}
-.comp-nav-item.active .comp-nav-dot { opacity: 1; }
+.comp-nav-dot { display: none; }
+.comp-nav-item.active .comp-nav-dot { display: none; }
 .comp-nav-item.has-warn { color: var(--danger); }
+.comp-nav-item.has-warn.active {
+  color: var(--danger); border-bottom-color: var(--danger);
+  background: var(--danger-bg);
+}
 
 /* ---- Content area ---- */
 .comp-content {
@@ -268,14 +266,15 @@ body {
 
 /* ---- Responsive ---- */
 @media (max-width: 800px) {
-  .report-body { grid-template-columns: 1fr; }
-  .comp-nav { display: none; }
+  .comp-nav { padding: 0 4px; }
+  .comp-nav-item { padding: 8px 10px; font-size: 0.78em; }
+  .report-header { padding: 10px 16px; }
+  .comp-content { padding: 14px 12px 30px; }
 }
 
 @media print {
   body { background: #fff; height: auto; overflow: visible; }
   .comp-nav { display: none; }
-  .report-body { display: block; }
   .comp-content { overflow: visible; }
   .comp-section { display: block !important; }
   .plot-block, .summary-card { box-shadow: none; border: 1px solid #ddd; }
@@ -780,9 +779,8 @@ build_comp_audit_html <- function(output, title, params,
     build_methods_content()
   )
 
-  # ---- Build sidebar ----
+  # ---- Build top navigation ----
   nav_items <- list(
-    htmltools::tags$div(class = "comp-nav-label", "Report"),
     audit_nav_item("overview", "Overview"),
     audit_nav_item("warnings",
              sprintf("Warnings (%d)", n_warn),
@@ -809,7 +807,7 @@ build_comp_audit_html <- function(output, title, params,
     )
   )
 
-  sidebar <- htmltools::tags$nav(class = "comp-nav", nav_items)
+  top_nav <- htmltools::tags$nav(class = "comp-nav", nav_items)
   main    <- htmltools::tags$main(class = "comp-content", list(
     overview, warnings_sec, audit, sample_sec, group_sec, dom_sec, methods_sec
   ))
@@ -831,7 +829,8 @@ build_comp_audit_html <- function(output, title, params,
     htmltools::tags$body(
       htmltools::tags$div(class = "container",
         header,
-        htmltools::tags$div(class = "report-body", sidebar, main),
+        top_nav,
+        main,
         footer
       ),
       script_tag
