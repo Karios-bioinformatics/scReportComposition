@@ -479,13 +479,14 @@ plot_group_composition <- function(group_summary, identity_colors,
 
 #' Plot 7 — Sample-Level Identity Proportions by Group
 #'
-#' Jitter + mean crossbar per identity x group.
-#' Each point is a sample, not a cell.
+#' Returns a structured list of individual identity panels for horizontal
+#' scroll rendering. Each panel is a separate Plotly widget with jitter
+#' points (samples) + mean crossbars per group.
 #'
 #' @param prop_table data.frame from \code{build_prop_table()}
 #' @param group_colors Named colour vector for groups
 #' @param warning_table data.frame for subtitle logic
-#' @return A plotly htmlwidget
+#' @return A list with type, title, subtitle, and panels (named list of plotly widgets)
 #' @keywords internal
 plot_sample_identity_by_group <- function(prop_table, group_colors,
                                            warning_table = NULL) {
@@ -509,28 +510,17 @@ plot_sample_identity_by_group <- function(prop_table, group_colors,
   # Filter zero-total rows
   plot_data <- prop_table[prop_table$total_cells > 0, ]
 
-  plot_data$hover <- sprintf(
-    "<b>%s</b><br>Sample: %s<br>Group: %s<br>Proportion: %.1f%%",
-    plot_data$identity, plot_data$sample, plot_data$group,
-    plot_data$proportion * 100
-  )
+  # Fixed jitter per sample x identity combination (seeded per identity)
+  group_to_num <- setNames(seq_along(groups), groups)
 
-  # Build as faceted scatter with mean crossbars using subplots
-  n_ids <- length(identities)
-
-  # For each identity, create a subplot with jitter + mean
-  subplot_list <- list()
-  annotations   <- list()
-
+  panels <- list()
   for (i in seq_along(identities)) {
     id <- identities[i]
     id_data <- plot_data[plot_data$identity == id, ]
-
     if (nrow(id_data) == 0) next
 
-    # Jitter x positions
-    set.seed(42)
-    group_to_num <- setNames(seq_along(groups), groups)
+    # Deterministic jitter per identity
+    set.seed(i * 7 + 13)
     id_data$x_num <- group_to_num[as.character(id_data$group)] +
       stats::runif(nrow(id_data), -0.2, 0.2)
 
@@ -538,6 +528,17 @@ plot_sample_identity_by_group <- function(prop_table, group_colors,
     agg <- stats::aggregate(proportion ~ group, data = id_data, FUN = mean)
     agg$x_num <- group_to_num[as.character(agg$group)]
 
+    # Build hover per sample (enriched)
+    id_data$hover <- sprintf(
+      "<b>%s</b><br>Sample: %s<br>Group: %s<br>Identity: %s<br>Cells: %s / %s<br>Proportion: %.1f%%",
+      id_data$identity, id_data$sample, id_data$group,
+      id_data$identity,
+      fmt_num(id_data$n_cells), fmt_num(id_data$total_cells),
+      id_data$proportion * 100
+    )
+
+    # Panel: scatter + mean lines
+    show_y_axis <- (i == 1)
     p_id <- plotly::plot_ly(
       data        = id_data,
       x           = ~x_num,
@@ -549,13 +550,13 @@ plot_sample_identity_by_group <- function(prop_table, group_colors,
       text        = ~hover,
       hoverinfo   = "text",
       hoverlabel  = list(bgcolor = "#2d3436", font = list(color = "#ffffff")),
-      marker      = list(size = 8, opacity = 0.65,
+      marker      = list(size = 7, opacity = 0.6,
                          line = list(width = 0.5, color = "#ffffff")),
       legendgroup = ~group,
-      showlegend  = (i == 1)
+      showlegend  = FALSE
     )
 
-    # Add mean crossbars
+    # Add mean crossbars per group
     for (j in seq_len(nrow(agg))) {
       g_num <- agg$x_num[j]
       mn    <- agg$proportion[j]
@@ -564,7 +565,7 @@ plot_sample_identity_by_group <- function(prop_table, group_colors,
         xend = g_num + 0.35,
         y    = mn,
         yend = mn,
-        line  = list(color = "#2d3436", width = 2),
+        line  = list(color = "#2d3436", width = 1.8),
         showlegend = FALSE,
         hoverinfo  = "none"
       )
@@ -572,65 +573,38 @@ plot_sample_identity_by_group <- function(prop_table, group_colors,
 
     p_id <- plotly::layout(p_id,
       xaxis = list(
-        title    = if (i == n_ids) "Group" else "",
+        title    = "",
         tickvals = group_to_num,
         ticktext = names(group_to_num),
-        range    = c(0.3, length(groups) + 0.7)
+        tickfont = list(size = 9),
+        range    = c(0.3, length(groups) + 0.7),
+        fixedrange = TRUE
       ),
       yaxis = list(
-        title    = "Proportion",
-        tickformat = ".0%"
+        title    = if (show_y_axis) "Proportion" else "",
+        tickformat = ".0%",
+        tickfont = list(size = 9)
       ),
-      annotations = list(list(
-        text = paste0("<b>", id, "</b>"),
-        x = 0.5, y = 1.05,
-        xref = "paper", yref = "paper",
-        showarrow = FALSE,
-        font = list(size = 11, color = "#2d3436")
-      ))
+      margin = list(
+        l = if (show_y_axis) 45 else 20,
+        r = 10, t = 32, b = 60
+      )
     )
 
-    subplot_list[[length(subplot_list) + 1]] <- p_id
+    p_id <- plotly::config(p_id,
+      displayModeBar = FALSE,
+      displaylogo    = FALSE
+    )
+
+    panels[[id]] <- p_id
   }
 
-  # Use subplot
-  n_plots <- length(subplot_list)
-  if (n_plots == 0) return(NULL)
-
-  n_cols <- min(4, n_plots)
-  n_rows <- ceiling(n_plots / n_cols)
-
-  p <- plotly::subplot(
-    subplot_list,
-    nrows    = n_rows,
-    shareX   = TRUE,
-    shareY   = FALSE,
-    titleX   = TRUE,
-    titleY   = TRUE
+  list(
+    type     = "horizontal_scroll_panels",
+    title    = "Sample-level identity proportions by group",
+    subtitle = subtitle,
+    panels   = panels
   )
-
-  p <- plotly::layout(p,
-    title = list(
-      text = paste0(
-        "Sample-level identity proportions by group<br>",
-        "<sup>", subtitle, "</sup>"
-      ),
-      font = list(size = 14)
-    ),
-    margin = list(l = 60, r = 30, b = 60, t = 80),
-    hovermode = "closest"
-  )
-
-  p <- plotly::config(p,
-    displayModeBar = TRUE, displaylogo = FALSE,
-    modeBarButtons = list(list("toImage", "zoom2d", "pan2d",
-                               "resetScale2d", "hoverClosestCartesian")),
-    toImageButtonOptions = list(
-      format = "png", filename = "sample_level_by_group",
-      height = 600, width = 1000
-    )
-  )
-  p
 }
 
 

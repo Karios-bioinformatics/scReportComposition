@@ -264,6 +264,50 @@ body {
   border-bottom: 1px solid var(--sr-border);
 }
 
+/* ---- Horizontal identity panel strip (Plot 7) ---- */
+.identity-scroll-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 12px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.identity-scroll-strip::-webkit-scrollbar { height: 5px; }
+.identity-scroll-strip::-webkit-scrollbar-thumb {
+  background: var(--sr-light-muted); border-radius: 3px;
+}
+.identity-panel {
+  flex: 0 0 300px;
+  min-width: 300px;
+  max-width: 300px;
+  background: #fff;
+  border: 1px solid var(--sr-border);
+  border-radius: var(--sr-radius-sm);
+  padding: 6px;
+  scroll-snap-align: start;
+}
+.identity-panel .panel-label {
+  font-size: 0.76em; font-weight: 700; color: var(--sr-text);
+  text-align: center; padding: 2px 0 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.identity-panel .html-widget,
+.identity-panel .plotly,
+.identity-panel .js-plotly-plot {
+  width: 100% !important;
+}
+
+.plot-subtitle {
+  font-size: 0.8em;
+  color: var(--sr-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--sr-border);
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 800px) {
   .comp-nav { padding: 0 4px; }
@@ -628,6 +672,27 @@ audit_plot_block <- function(title, widget) {
 }
 
 
+#' Build a horizontally-scrollable panel strip (for Plot 7)
+#' @keywords internal
+audit_horizontal_plot_strip <- function(title, subtitle, panels) {
+  if (is.null(panels) || length(panels) == 0) return(NULL)
+  panel_divs <- lapply(names(panels), function(id) {
+    htmltools::tags$div(
+      class = "identity-panel",
+      htmltools::tags$div(class = "panel-label", id),
+      htmltools::as.tags(panels[[id]])
+    )
+  })
+  htmltools::tags$div(
+    class = "plot-block",
+    htmltools::tags$div(class = "comp-section-title", style = "font-size:0.82em; margin-bottom:6px; padding-bottom:6px;", title),
+    if (!is.null(subtitle) && nzchar(subtitle))
+      htmltools::tags$div(class = "plot-subtitle", subtitle),
+    htmltools::tags$div(class = "identity-scroll-strip", panel_divs)
+  )
+}
+
+
 # ---- Section builder ----
 
 #' Build a report section
@@ -706,8 +771,11 @@ build_comp_audit_html <- function(output, title, params,
   group_plots <- list(
     audit_plot_block("Plot 6: Descriptive identity composition by group",
                plots$composition_by_group),
-    audit_plot_block("Plot 7: Sample-level identity proportions by group",
-               plots$sample_level_by_group)
+    audit_horizontal_plot_strip(
+      plots$sample_level_by_group$title,
+      plots$sample_level_by_group$subtitle,
+      plots$sample_level_by_group$panels
+    )
   )
 
   group_sec <- audit_comp_section("group", group_title,
