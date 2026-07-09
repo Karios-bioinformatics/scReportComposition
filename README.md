@@ -4,7 +4,7 @@
   <strong>Descriptive composition audit reports for single-cell metadata.</strong>
 </p>
 
-<p align="center"><img src="https://img.shields.io/badge/Version-v0.2.0-blue" alt="Version"> <img src="https://img.shields.io/badge/Status-MVP%20candidate-success" alt="Status"> <img src="https://img.shields.io/badge/Layer-scReport%20Module-lightgrey" alt="Layer"> <img src="https://img.shields.io/badge/Focus-Composition%20Audit-purple" alt="Focus"> <a href="https://doi.org/10.5281/zenodo.20955461"><img src="https://zenodo.org/badge/1280164558.svg" alt="DOI"></a> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></p>
+<p align="center"><img src="https://img.shields.io/badge/Version-v0.2.0-blue" alt="Version"> <img src="https://img.shields.io/badge/Status-MVP%20candidate-success" alt="Status"> <img src="https://img.shields.io/badge/Layer-scReport%20Module-lightgrey" alt="Layer"> <img src="https://img.shields.io/badge/Focus-Composition%20Audit-purple" alt="Focus"> <a href="https://doi.org/10.5281/zenodo.21278329"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.21278329.svg" alt="DOI"></a> <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></p>
 
 ## Overview
 
@@ -146,10 +146,10 @@ Use `scReportLite` for expression/embedding reports and `scReportDE` for differe
 
 ## Citation
 
-[![DOI](https://zenodo.org/badge/1280164558.svg)](https://doi.org/10.5281/zenodo.20955461)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21278329.svg)](https://doi.org/10.5281/zenodo.21278329)
 
 ```text
-10.5281/zenodo.20955461
+10.5281/zenodo.21278329
 ```
 
 ## License
